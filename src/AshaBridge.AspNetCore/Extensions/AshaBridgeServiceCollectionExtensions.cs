@@ -26,6 +26,18 @@ public static class AshaBridgeServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services
+            .AddOptions<BitrixExtensionOptions>()
+            .Bind(configuration.GetSection("bitrix"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services
+            .AddOptions<MoodleExtensionOptions>()
+            .Bind(configuration.GetSection("moodle"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         var methods = new MethodRegistry();
         var contracts = new ContractRegistry();
         var extensions = new ExtensionRegistry();
@@ -44,7 +56,7 @@ public static class AshaBridgeServiceCollectionExtensions
             .AddAuthentication(AshaBridgeServiceTokenHandler.SchemeName)
             .AddScheme<AshaBridgeServiceTokenOptions, AshaBridgeServiceTokenHandler>(
                 AshaBridgeServiceTokenHandler.SchemeName,
-                options => configuration.GetSection("security:serviceTokens").Bind(options.ServiceTokens));
+                options => configuration.GetSection("security").Bind(options));
 
         services.AddAuthorization();
         services.AddHealthChecks()

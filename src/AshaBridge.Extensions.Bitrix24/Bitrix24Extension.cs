@@ -5,6 +5,7 @@ using AshaBridge.Extensions.Bitrix24.Contracts;
 using AshaBridge.Extensions.Bitrix24.Handlers;
 using AshaBridge.Sdk.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace AshaBridge.Extensions.Bitrix24;
 
@@ -16,7 +17,18 @@ public sealed class Bitrix24Extension : IAshaBridgeExtension
 
     public void Configure(IAshaBridgeExtensionBuilder builder)
     {
-        builder.Services.AddHttpClient<BitrixRestClient>();
+        builder.Services.AddHttpClient<BitrixRestClient>((services, http) =>
+        {
+            var options = services.GetRequiredService<IOptions<BitrixExtensionOptions>>().Value;
+            var instance = options.Instances.GetValueOrDefault(options.DefaultInstance);
+            if (instance is null)
+            {
+                return;
+            }
+
+            http.Timeout = TimeSpan.FromSeconds(instance.TimeoutSeconds);
+            http.BaseAddress = new Uri(EnsureTrailingSlash(instance.WebhookUrl ?? instance.BaseUrl));
+        });
         builder.AddMethod<BitrixCrmItemGetRequest, BitrixCrmItemGetResponse, BitrixCrmItemGetHandler>();
         builder.AddMethod<BitrixCrmItemListRequest, BitrixCrmItemListResponse, BitrixCrmItemListHandler>();
         builder.AddMethod<BitrixCrmItemUpdateRequest, BitrixCrmItemUpdateResponse, BitrixCrmItemUpdateHandler>();
@@ -26,6 +38,9 @@ public sealed class Bitrix24Extension : IAshaBridgeExtension
         builder.AddMethod<BitrixCrmContactListRequest, BitrixCrmContactListResponse, BitrixCrmContactListHandler>();
         builder.AddMethod<BitrixCrmTimelineCommentAddRequest, BitrixCrmTimelineCommentAddResponse, BitrixCrmTimelineCommentAddHandler>();
     }
+
+    private static string EnsureTrailingSlash(string value) =>
+        value.EndsWith("/", StringComparison.Ordinal) ? value : $"{value}/";
 }
 
 public sealed class BitrixExtensionOptions
@@ -66,4 +81,5 @@ public sealed class BitrixRestClient(HttpClient http)
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken: ct).ConfigureAwait(false) ?? [];
     }
+
 }

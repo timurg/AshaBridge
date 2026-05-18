@@ -5,6 +5,7 @@ using AshaBridge.Extensions.Moodle.Contracts;
 using AshaBridge.Extensions.Moodle.Handlers;
 using AshaBridge.Sdk.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace AshaBridge.Extensions.Moodle;
 
@@ -16,12 +17,26 @@ public sealed class MoodleExtension : IAshaBridgeExtension
 
     public void Configure(IAshaBridgeExtensionBuilder builder)
     {
-        builder.Services.AddHttpClient<MoodleWebServiceClient>();
+        builder.Services.AddHttpClient<MoodleWebServiceClient>((services, http) =>
+        {
+            var options = services.GetRequiredService<IOptions<MoodleExtensionOptions>>().Value;
+            var instance = options.Instances.GetValueOrDefault(options.DefaultInstance);
+            if (instance is null)
+            {
+                return;
+            }
+
+            http.Timeout = TimeSpan.FromSeconds(instance.TimeoutSeconds);
+            http.BaseAddress = new Uri(EnsureTrailingSlash(instance.BaseUrl));
+        });
         builder.AddMethod<MoodleGetUsersByFieldRequest, MoodleGetUsersByFieldResponse, MoodleGetUsersByFieldHandler>();
         builder.AddMethod<MoodleGetUsersCoursesRequest, MoodleGetUsersCoursesResponse, MoodleGetUsersCoursesHandler>();
         builder.AddMethod<MoodleGetActivitiesCompletionStatusRequest, MoodleGetActivitiesCompletionStatusResponse, MoodleGetActivitiesCompletionStatusHandler>();
         builder.AddMethod<MoodleGetGradeItemsRequest, MoodleGetGradeItemsResponse, MoodleGetGradeItemsHandler>();
     }
+
+    private static string EnsureTrailingSlash(string value) =>
+        value.EndsWith("/", StringComparison.Ordinal) ? value : $"{value}/";
 }
 
 public sealed class MoodleExtensionOptions
@@ -43,7 +58,7 @@ public sealed class MoodleInstanceOptions
     public int TimeoutSeconds { get; set; } = 20;
 }
 
-public sealed class MoodleWebServiceClient(HttpClient http)
+public sealed class MoodleWebServiceClient(HttpClient http, IOptions<MoodleExtensionOptions> options)
 {
     public async Task<JsonObject> CallAsync(string function, JsonObject payload, CancellationToken ct)
     {
@@ -56,8 +71,17 @@ public sealed class MoodleWebServiceClient(HttpClient http)
             };
         }
 
+        var instance = options.Value.Instances.GetValueOrDefault(options.Value.DefaultInstance);
+        if (!string.IsNullOrWhiteSpace(instance?.Token))
+        {
+            payload["wstoken"] = instance.Token;
+            payload["wsfunction"] = function;
+            payload["moodlewsrestformat"] = "json";
+        }
+
         using var response = await http.PostAsJsonAsync("webservice/rest/server.php", payload, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken: ct).ConfigureAwait(false) ?? [];
     }
+
 }

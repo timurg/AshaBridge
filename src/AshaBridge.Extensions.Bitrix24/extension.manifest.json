@@ -1,0 +1,19 @@
+{
+  "id": "ashabridge.extensions.bitrix24",
+  "name": "AshaBridge Bitrix24 Extension",
+  "version": "1.0.0",
+  "sdkVersion": ">=1.0.0 <2.0.0",
+  "providesMethods": [
+    "bitrix_crm_item_get",
+    "bitrix_crm_item_list",
+    "bitrix_crm_item_update",
+    "bitrix_crm_deal_get",
+    "bitrix_crm_deal_list",
+    "bitrix_crm_contact_get",
+    "bitrix_crm_contact_list",
+    "bitrix_crm_timeline_comment_add"
+  ],
+  "requiresConfiguration": [
+    "bitrix.instances"
+  ]
+}

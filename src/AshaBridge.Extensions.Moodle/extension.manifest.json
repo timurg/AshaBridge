@@ -1,0 +1,15 @@
+{
+  "id": "ashabridge.extensions.moodle",
+  "name": "AshaBridge Moodle Extension",
+  "version": "1.0.0",
+  "sdkVersion": ">=1.0.0 <2.0.0",
+  "providesMethods": [
+    "moodle_core_user_get_users_by_field",
+    "moodle_core_enrol_get_users_courses",
+    "moodle_core_completion_get_activities_completion_status",
+    "moodle_gradereport_user_get_grade_items"
+  ],
+  "requiresConfiguration": [
+    "moodle.instances"
+  ]
+}

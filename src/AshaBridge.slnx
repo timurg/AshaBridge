@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="AshaBridge.Api/AshaBridge.Api.csproj" />
+  <Project Path="AshaBridge.AspNetCore/AshaBridge.AspNetCore.csproj" />
+  <Project Path="AshaBridge.Caching/AshaBridge.Caching.csproj" />
+  <Project Path="AshaBridge.Core/AshaBridge.Core.csproj" />
+  <Project Path="AshaBridge.Extensions.Bitrix24/AshaBridge.Extensions.Bitrix24.csproj" />
+  <Project Path="AshaBridge.Extensions.Moodle/AshaBridge.Extensions.Moodle.csproj" />
+  <Project Path="AshaBridge.Persistence/AshaBridge.Persistence.csproj" />
+  <Project Path="AshaBridge.PluginHost/AshaBridge.PluginHost.csproj" />
+  <Project Path="AshaBridge.Sdk/AshaBridge.Sdk.csproj" />
+</Solution>

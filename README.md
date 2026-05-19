@@ -41,9 +41,14 @@ Do not commit real passwords, service tokens, Bitrix24 webhooks, or Moodle token
     "bitrix.crm.item.read",
     "bitrix.crm.item.write",
     "bitrix.crm.deal.read",
+    "bitrix.crm.deal.write",
     "bitrix.crm.contact.read",
+    "bitrix.crm.contact.write",
+    "bitrix.crm.activity.write",
+    "bitrix.user.read",
     "bitrix.timeline.write",
     "moodle.user.read",
+    "moodle.user.write",
     "moodle.course.read",
     "moodle.progress.read",
     "moodle.grade.read"
@@ -63,9 +68,14 @@ Do not commit real passwords, service tokens, Bitrix24 webhooks, or Moodle token
       "bitrix.crm.item.read",
       "bitrix.crm.item.write",
       "bitrix.crm.deal.read",
+      "bitrix.crm.deal.write",
       "bitrix.crm.contact.read",
+      "bitrix.crm.contact.write",
+      "bitrix.crm.activity.write",
+      "bitrix.user.read",
       "bitrix.timeline.write",
       "moodle.user.read",
+      "moodle.user.write",
       "moodle.course.read",
       "moodle.progress.read",
       "moodle.grade.read"
@@ -114,9 +124,14 @@ For a trusted single-user n8n integration, grant the current full set of built-i
   "bitrix.crm.item.read",
   "bitrix.crm.item.write",
   "bitrix.crm.deal.read",
+  "bitrix.crm.deal.write",
   "bitrix.crm.contact.read",
+  "bitrix.crm.contact.write",
+  "bitrix.crm.activity.write",
+  "bitrix.user.read",
   "bitrix.timeline.write",
   "moodle.user.read",
+  "moodle.user.write",
   "moodle.course.read",
   "moodle.progress.read",
   "moodle.grade.read"
@@ -178,3 +193,38 @@ $pair = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("admin:change-m
 Invoke-RestMethod http://127.0.0.1:5088/internal/ashabridge/methods `
   -Headers @{ Authorization = "Basic $pair" }
 ```
+
+## Integration Tests
+
+Integration tests make real HTTPS requests to Bitrix24 and Moodle using tokens from:
+
+```text
+src/AshaBridge.Api/appsettings.json
+```
+
+Run them with:
+
+```powershell
+dotnet test tests/AshaBridge.IntegrationTests/AshaBridge.IntegrationTests.csproj
+```
+
+The tests auto-discover Bitrix24 deals/contacts and Moodle user/course data where possible. The Moodle test user is looked up by email and created with a random password when missing. For exact records or write checks, fill `integrationTests` in `appsettings.json`.
+
+Keep `integrationTests:allowWrites` set to `false` unless you intentionally want tests to call write methods such as `crm.item.update` and `crm.timeline.comment.add`.
+
+The Moodle external service linked to the token must allow these functions:
+
+- `core_user_get_users_by_field`
+- `core_user_get_users`
+- `core_user_create_users`
+- `core_user_update_users`
+- `core_auth_request_password_reset`
+- `core_enrol_get_users_courses`
+- `enrol_manual_enrol_users`
+- `core_course_get_courses`
+- `core_course_get_courses_by_field`
+- `core_course_get_contents`
+- `core_completion_get_activities_completion_status`
+- `core_completion_get_course_completion_status`
+- `core_competency_list_user_plans`
+- `gradereport_user_get_grade_items`

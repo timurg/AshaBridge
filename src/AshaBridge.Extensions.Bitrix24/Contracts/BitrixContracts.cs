@@ -109,6 +109,82 @@ public sealed record BitrixCrmContactListRequest(
 
 public sealed record BitrixCrmContactListResponse(JsonArray Contacts);
 
+[McpMethod("bitrix_crm_contact_update")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.contact.write")]
+[OperationRisk(OperationRisk.WriteMedium)]
+[RequiresIdempotency]
+[DoNotCache]
+[InvalidatesCache("bitrix:crm.contact:{Id}")]
+[McpDescription("Update Bitrix24 CRM contact name fields and email. Only provided fields are changed.")]
+public sealed record BitrixCrmContactUpdateRequest(
+    [property: CacheKey]
+    [property: McpParameterDescription("Bitrix24 CRM contact id to update.")]
+    long Id,
+
+    [property: McpParameterDescription("Optional contact first name.")]
+    string? Name,
+
+    [property: McpParameterDescription("Optional contact last name.")]
+    string? LastName,
+
+    [property: McpParameterDescription("Optional contact middle name.")]
+    string? MiddleName,
+
+    [property: McpParameterDescription("Optional contact email.")]
+    string? Email) : IMcpRequest<BitrixCrmContactUpdateResponse>;
+
+public sealed record BitrixCrmContactUpdateResponse(bool Success, string Message);
+
+[McpMethod("bitrix_crm_deal_training_direction_update")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.deal.write")]
+[OperationRisk(OperationRisk.WriteMedium)]
+[RequiresIdempotency]
+[DoNotCache]
+[InvalidatesCache("bitrix:crm.deal:{Id}")]
+[McpDescription("Update Bitrix24 CRM deal training direction field UF_CRM_6283BEE95507A.")]
+public sealed record BitrixCrmDealTrainingDirectionUpdateRequest(
+    [property: CacheKey]
+    [property: McpParameterDescription("Bitrix24 CRM deal id to update.")]
+    long Id,
+
+    [property: McpParameterDescription("Training direction value.")]
+    string Direction) : IMcpRequest<BitrixCrmDealTrainingDirectionUpdateResponse>;
+
+public sealed record BitrixCrmDealTrainingDirectionUpdateResponse(bool Success, string Message);
+
+[McpMethod("bitrix_crm_deal_party_email_add")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.deal.read")]
+[RequiresPermission("bitrix.crm.contact.read")]
+[RequiresPermission("bitrix.crm.activity.write")]
+[RequiresPermission("bitrix.user.read")]
+[OperationRisk(OperationRisk.WriteMedium)]
+[RequiresIdempotency]
+[DoNotCache]
+[McpDescription("Add an outgoing email CRM activity on a Bitrix24 deal for the student, student curator, or manager.")]
+public sealed record BitrixCrmDealPartyEmailAddRequest(
+    [property: McpParameterDescription("Bitrix24 CRM deal id.")]
+    long DealId,
+
+    [property: McpParameterDescription("Recipient: student, student_curator, or manager. The tool resolves the email address.")]
+    string Recipient,
+
+    [property: McpParameterDescription("Email subject.")]
+    string Subject,
+
+    [property: McpParameterDescription("Email body.")]
+    string Body,
+
+    [property: McpParameterDescription("Whether the body is HTML. Defaults to true.")]
+    bool IsHtml = true,
+
+    [property: McpParameterDescription("Do not copy the sender. Defaults to false.")]
+    bool DisableCopyToSelf = false) : IMcpRequest<BitrixCrmDealPartyEmailAddResponse>;
+
+public sealed record BitrixCrmDealPartyEmailAddResponse(bool Success, long ActivityId, string Recipient);
+
 [McpMethod("bitrix_crm_timeline_comment_add")]
 [ContractVersion("1.0.0")]
 [RequiresPermission("bitrix.timeline.write")]

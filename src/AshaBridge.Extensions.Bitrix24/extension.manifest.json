@@ -11,6 +11,9 @@
     "bitrix_crm_deal_list",
     "bitrix_crm_contact_get",
     "bitrix_crm_contact_list",
+    "bitrix_crm_contact_update",
+    "bitrix_crm_deal_training_direction_update",
+    "bitrix_crm_deal_party_email_add",
     "bitrix_crm_timeline_comment_add"
   ],
   "requiresConfiguration": [

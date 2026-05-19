@@ -36,6 +36,9 @@ public sealed class Bitrix24Extension : IAshaBridgeExtension
         builder.AddMethod<BitrixCrmDealListRequest, BitrixCrmDealListResponse, BitrixCrmDealListHandler>();
         builder.AddMethod<BitrixCrmContactGetRequest, BitrixCrmContactGetResponse, BitrixCrmContactGetHandler>();
         builder.AddMethod<BitrixCrmContactListRequest, BitrixCrmContactListResponse, BitrixCrmContactListHandler>();
+        builder.AddMethod<BitrixCrmContactUpdateRequest, BitrixCrmContactUpdateResponse, BitrixCrmContactUpdateHandler>();
+        builder.AddMethod<BitrixCrmDealTrainingDirectionUpdateRequest, BitrixCrmDealTrainingDirectionUpdateResponse, BitrixCrmDealTrainingDirectionUpdateHandler>();
+        builder.AddMethod<BitrixCrmDealPartyEmailAddRequest, BitrixCrmDealPartyEmailAddResponse, BitrixCrmDealPartyEmailAddHandler>();
         builder.AddMethod<BitrixCrmTimelineCommentAddRequest, BitrixCrmTimelineCommentAddResponse, BitrixCrmTimelineCommentAddHandler>();
     }
 
@@ -78,7 +81,12 @@ public sealed class BitrixRestClient(HttpClient http)
         }
 
         using var response = await http.PostAsJsonAsync(method, payload, ct).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            throw new HttpRequestException($"Bitrix24 REST call '{method}' failed with {(int)response.StatusCode} {response.ReasonPhrase}: {body}");
+        }
+
         return await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken: ct).ConfigureAwait(false) ?? [];
     }
 

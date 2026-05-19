@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using AshaBridge.Extensions.Moodle.Contracts;
 using AshaBridge.Extensions.Moodle.Handlers;
@@ -30,9 +30,19 @@ public sealed class MoodleExtension : IAshaBridgeExtension
             http.BaseAddress = new Uri(EnsureTrailingSlash(instance.BaseUrl));
         });
         builder.AddMethod<MoodleGetUsersByFieldRequest, MoodleGetUsersByFieldResponse, MoodleGetUsersByFieldHandler>();
+        builder.AddMethod<MoodleCreateUserRequest, MoodleCreateUserResponse, MoodleCreateUserHandler>();
+        builder.AddMethod<MoodleUpdateUserRequest, MoodleUpdateUserResponse, MoodleUpdateUserHandler>();
+        builder.AddMethod<MoodleGetUserRequest, MoodleGetUserResponse, MoodleGetUserHandler>();
+        builder.AddMethod<MoodleRequestPasswordResetRequest, MoodleRawResponse, MoodleRequestPasswordResetHandler>();
         builder.AddMethod<MoodleGetUsersCoursesRequest, MoodleGetUsersCoursesResponse, MoodleGetUsersCoursesHandler>();
+        builder.AddMethod<MoodleManualEnrolUserRequest, MoodleRawResponse, MoodleManualEnrolUserHandler>();
         builder.AddMethod<MoodleGetActivitiesCompletionStatusRequest, MoodleGetActivitiesCompletionStatusResponse, MoodleGetActivitiesCompletionStatusHandler>();
+        builder.AddMethod<MoodleGetCourseCompletionStatusRequest, MoodleRawResponse, MoodleGetCourseCompletionStatusHandler>();
+        builder.AddMethod<MoodleListUserPlansRequest, MoodleRawResponse, MoodleListUserPlansHandler>();
         builder.AddMethod<MoodleGetGradeItemsRequest, MoodleGetGradeItemsResponse, MoodleGetGradeItemsHandler>();
+        builder.AddMethod<MoodleGetCoursesRequest, MoodleRawResponse, MoodleGetCoursesHandler>();
+        builder.AddMethod<MoodleGetCoursesByFieldRequest, MoodleRawResponse, MoodleGetCoursesByFieldHandler>();
+        builder.AddMethod<MoodleGetCourseContentsRequest, MoodleRawResponse, MoodleGetCourseContentsHandler>();
     }
 
     private static string EnsureTrailingSlash(string value) =>
@@ -72,16 +82,68 @@ public sealed class MoodleWebServiceClient(HttpClient http, IOptions<MoodleExten
         }
 
         var instance = options.Value.Instances.GetValueOrDefault(options.Value.DefaultInstance);
-        if (!string.IsNullOrWhiteSpace(instance?.Token))
+        if (string.IsNullOrWhiteSpace(instance?.Token))
         {
-            payload["wstoken"] = instance.Token;
-            payload["wsfunction"] = function;
-            payload["moodlewsrestformat"] = "json";
+            throw new InvalidOperationException("Moodle token is not configured.");
         }
 
-        using var response = await http.PostAsJsonAsync("webservice/rest/server.php", payload, ct).ConfigureAwait(false);
+        var form = new Dictionary<string, string>
+        {
+            ["wstoken"] = instance.Token,
+            ["wsfunction"] = function,
+            ["moodlewsrestformat"] = "json"
+        };
+
+        AddFormFields(form, payload);
+
+        using var response = await http.PostAsync("webservice/rest/server.php", new FormUrlEncodedContent(form), ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken: ct).ConfigureAwait(false) ?? [];
+        var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        var node = JsonNode.Parse(text);
+        if (node is JsonObject obj && obj["exception"] is not null)
+        {
+            throw new InvalidOperationException(text);
+        }
+
+        return node switch
+        {
+            JsonObject objectResult => objectResult,
+            JsonArray array => new JsonObject { ["items"] = array },
+            _ => new JsonObject()
+        };
     }
 
+    private static void AddFormFields(Dictionary<string, string> form, JsonObject payload)
+    {
+        foreach (var (key, value) in payload)
+        {
+            AddFormField(form, key, value);
+        }
+    }
+
+    private static void AddFormField(Dictionary<string, string> form, string key, JsonNode? value)
+    {
+        switch (value)
+        {
+            case null:
+                return;
+            case JsonValue jsonValue:
+                form[key] = jsonValue.ToString();
+                return;
+            case JsonObject jsonObject:
+                foreach (var (childKey, childValue) in jsonObject)
+                {
+                    AddFormField(form, $"{key}[{childKey}]", childValue);
+                }
+
+                return;
+            case JsonArray jsonArray:
+                for (var i = 0; i < jsonArray.Count; i++)
+                {
+                    AddFormField(form, $"{key}[{i}]", jsonArray[i]);
+                }
+
+                return;
+        }
+    }
 }

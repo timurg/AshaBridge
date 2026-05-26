@@ -43,6 +43,24 @@ public sealed class MoodleExtension : IAshaBridgeExtension
         builder.AddMethod<MoodleGetCoursesRequest, MoodleRawResponse, MoodleGetCoursesHandler>();
         builder.AddMethod<MoodleGetCoursesByFieldRequest, MoodleRawResponse, MoodleGetCoursesByFieldHandler>();
         builder.AddMethod<MoodleGetCourseContentsRequest, MoodleRawResponse, MoodleGetCourseContentsHandler>();
+        builder.AddMethod<MoodleFindUserByEmailRequest, MoodleFindUserResponse, MoodleFindUserByEmailHandler>();
+        builder.AddMethod<MoodleFindUserByIdRequest, MoodleFindUserResponse, MoodleFindUserByIdHandler>();
+        builder.AddMethod<MoodleFindUserByUsernameRequest, MoodleFindUserResponse, MoodleFindUserByUsernameHandler>();
+        builder.AddMethod<MoodleUserUpdateNameRequest, MoodleUpdateUserResponse, MoodleUserUpdateNameHandler>();
+        builder.AddMethod<MoodleUserUpdateEmailRequest, MoodleUpdateUserResponse, MoodleUserUpdateEmailHandler>();
+        builder.AddMethod<MoodleUserUpdateUsernameRequest, MoodleUpdateUserResponse, MoodleUserUpdateUsernameHandler>();
+        builder.AddMethod<MoodleUserUpdatePasswordRequest, MoodleUpdateUserResponse, MoodleUserUpdatePasswordHandler>();
+        builder.AddMethod<MoodleUserSuspendRequest, MoodleUpdateUserResponse, MoodleUserSuspendHandler>();
+        builder.AddMethod<MoodleUserUnsuspendRequest, MoodleUpdateUserResponse, MoodleUserUnsuspendHandler>();
+        builder.AddMethod<MoodleRequestPasswordResetByEmailRequest, MoodleRawResponse, MoodleRequestPasswordResetByEmailHandler>();
+        builder.AddMethod<MoodleRequestPasswordResetByUsernameRequest, MoodleRawResponse, MoodleRequestPasswordResetByUsernameHandler>();
+        builder.AddMethod<MoodleUserEnrolRequest, MoodleRawResponse, MoodleUserEnrolHandler>();
+        builder.AddMethod<MoodleUserEnrolAsStudentRequest, MoodleRawResponse, MoodleUserEnrolAsStudentHandler>();
+        builder.AddMethod<MoodleCourseGetByIdRequest, MoodleRawResponse, MoodleCourseGetByIdHandler>();
+        builder.AddMethod<MoodleCourseFindByShortNameRequest, MoodleRawResponse, MoodleCourseFindByShortNameHandler>();
+        builder.AddMethod<MoodleCourseFindByIdNumberRequest, MoodleRawResponse, MoodleCourseFindByIdNumberHandler>();
+        builder.AddMethod<MoodleCoursesFindByCategoryRequest, MoodleRawResponse, MoodleCoursesFindByCategoryHandler>();
+        builder.AddMethod<MoodleCourseGetContentsRequest, MoodleRawResponse, MoodleCourseGetContentsHandler>();
     }
 
     private static string EnsureTrailingSlash(string value) =>

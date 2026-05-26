@@ -22,6 +22,15 @@ public sealed class BitrixCrmItemListHandler(BitrixRestClient client) : IMcpMeth
     }
 }
 
+public sealed class BitrixCrmDynamicItemsListAllHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmDynamicItemsListAllRequest, BitrixCrmItemListResponse>
+{
+    public async Task<BitrixCrmItemListResponse> HandleAsync(BitrixCrmDynamicItemsListAllRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
+    {
+        var result = await client.CallAsync("crm.item.list", new JsonObject { ["entityTypeId"] = request.EntityTypeId }, ct);
+        return new BitrixCrmItemListResponse((result["result"]?["items"] as JsonArray) ?? []);
+    }
+}
+
 public sealed class BitrixCrmItemUpdateHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmItemUpdateRequest, BitrixCrmItemUpdateResponse>
 {
     public async Task<BitrixCrmItemUpdateResponse> HandleAsync(BitrixCrmItemUpdateRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
@@ -46,6 +55,24 @@ public sealed class BitrixCrmDealListHandler(BitrixRestClient client) : IMcpMeth
     }
 }
 
+public sealed class BitrixCrmDealsListAllHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmDealsListAllRequest, BitrixCrmDealListResponse>
+{
+    public async Task<BitrixCrmDealListResponse> HandleAsync(BitrixCrmDealsListAllRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
+    {
+        var result = await client.CallAsync("crm.deal.list", new JsonObject(), ct);
+        return new BitrixCrmDealListResponse((result["result"] as JsonArray) ?? []);
+    }
+}
+
+public sealed class BitrixCrmDealsFindByContactIdHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmDealsFindByContactIdRequest, BitrixCrmDealListResponse>
+{
+    public async Task<BitrixCrmDealListResponse> HandleAsync(BitrixCrmDealsFindByContactIdRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
+    {
+        var result = await client.CallAsync("crm.deal.list", new JsonObject { ["filter"] = new JsonObject { ["CONTACT_ID"] = request.ContactId } }, ct);
+        return new BitrixCrmDealListResponse((result["result"] as JsonArray) ?? []);
+    }
+}
+
 public sealed class BitrixCrmContactGetHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmContactGetRequest, BitrixCrmContactGetResponse>
 {
     public async Task<BitrixCrmContactGetResponse> HandleAsync(BitrixCrmContactGetRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct) =>
@@ -57,6 +84,24 @@ public sealed class BitrixCrmContactListHandler(BitrixRestClient client) : IMcpM
     public async Task<BitrixCrmContactListResponse> HandleAsync(BitrixCrmContactListRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
     {
         var result = await client.CallAsync("crm.contact.list", new JsonObject { ["filter"] = request.Filter?.DeepClone() }, ct);
+        return new BitrixCrmContactListResponse((result["result"] as JsonArray) ?? []);
+    }
+}
+
+public sealed class BitrixCrmContactsListAllHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmContactsListAllRequest, BitrixCrmContactListResponse>
+{
+    public async Task<BitrixCrmContactListResponse> HandleAsync(BitrixCrmContactsListAllRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
+    {
+        var result = await client.CallAsync("crm.contact.list", new JsonObject(), ct);
+        return new BitrixCrmContactListResponse((result["result"] as JsonArray) ?? []);
+    }
+}
+
+public sealed class BitrixCrmContactsFindByEmailHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmContactsFindByEmailRequest, BitrixCrmContactListResponse>
+{
+    public async Task<BitrixCrmContactListResponse> HandleAsync(BitrixCrmContactsFindByEmailRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
+    {
+        var result = await client.CallAsync("crm.contact.list", new JsonObject { ["filter"] = new JsonObject { ["EMAIL"] = request.Email } }, ct);
         return new BitrixCrmContactListResponse((result["result"] as JsonArray) ?? []);
     }
 }
@@ -109,6 +154,62 @@ public sealed class BitrixCrmContactUpdateHandler(BitrixRestClient client) : IMc
 
     private static bool GetBooleanResult(JsonObject result, bool defaultValue) =>
         result["result"]?.GetValue<bool?>() ?? defaultValue;
+}
+
+public sealed class BitrixCrmContactUpdateNameHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmContactUpdateNameRequest, BitrixCrmContactUpdateResponse>
+{
+    public async Task<BitrixCrmContactUpdateResponse> HandleAsync(BitrixCrmContactUpdateNameRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
+    {
+        var fields = new JsonObject { ["NAME"] = request.Name.Trim() };
+        AddIfProvided(fields, "LAST_NAME", request.LastName);
+        AddIfProvided(fields, "SECOND_NAME", request.MiddleName);
+
+        var result = await client.CallAsync("crm.contact.update", new JsonObject
+        {
+            ["id"] = request.Id,
+            ["fields"] = fields
+        }, ct);
+
+        var success = result["result"]?.GetValue<bool?>() ?? true;
+        return new BitrixCrmContactUpdateResponse(
+            success,
+            success ? "Contact updated successfully." : "Failed to update contact.");
+    }
+
+    private static void AddIfProvided(JsonObject fields, string name, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            fields[name] = value.Trim();
+        }
+    }
+}
+
+public sealed class BitrixCrmContactUpdateEmailHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmContactUpdateEmailRequest, BitrixCrmContactUpdateResponse>
+{
+    public async Task<BitrixCrmContactUpdateResponse> HandleAsync(BitrixCrmContactUpdateEmailRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
+    {
+        var result = await client.CallAsync("crm.contact.update", new JsonObject
+        {
+            ["id"] = request.Id,
+            ["fields"] = new JsonObject
+            {
+                ["EMAIL"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["VALUE"] = request.Email.Trim(),
+                        ["VALUE_TYPE"] = "WORK"
+                    }
+                }
+            }
+        }, ct);
+
+        var success = result["result"]?.GetValue<bool?>() ?? true;
+        return new BitrixCrmContactUpdateResponse(
+            success,
+            success ? "Contact updated successfully." : "Failed to update contact.");
+    }
 }
 
 public sealed class BitrixCrmDealTrainingDirectionUpdateHandler(BitrixRestClient client) : IMcpMethodHandler<BitrixCrmDealTrainingDirectionUpdateRequest, BitrixCrmDealTrainingDirectionUpdateResponse>

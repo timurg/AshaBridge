@@ -37,6 +37,17 @@ public sealed record BitrixCrmItemListRequest(
 
 public sealed record BitrixCrmItemListResponse(JsonArray Items);
 
+[McpMethod("bitrix_crm_dynamic_items_list_all")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.item.read")]
+[OperationRisk(OperationRisk.Read)]
+[Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
+[McpDescription("List all Bitrix24 CRM dynamic items for an entity type.")]
+public sealed record BitrixCrmDynamicItemsListAllRequest(
+    [property: CacheKey]
+    [property: McpParameterDescription("Bitrix24 CRM dynamic entity type id.")]
+    int EntityTypeId) : IMcpRequest<BitrixCrmItemListResponse>;
+
 [McpMethod("bitrix_crm_item_update")]
 [ContractVersion("1.0.0")]
 [RequiresPermission("bitrix.crm.item.write")]
@@ -84,6 +95,25 @@ public sealed record BitrixCrmDealListRequest(
 
 public sealed record BitrixCrmDealListResponse(JsonArray Deals);
 
+[McpMethod("bitrix_crm_deals_list_all")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.deal.read")]
+[OperationRisk(OperationRisk.Read)]
+[Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
+[McpDescription("List all Bitrix24 CRM deals.")]
+public sealed record BitrixCrmDealsListAllRequest() : IMcpRequest<BitrixCrmDealListResponse>;
+
+[McpMethod("bitrix_crm_deals_find_by_contact_id")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.deal.read")]
+[OperationRisk(OperationRisk.Read)]
+[Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
+[McpDescription("Find Bitrix24 CRM deals by contact id.")]
+public sealed record BitrixCrmDealsFindByContactIdRequest(
+    [property: CacheKey]
+    [property: McpParameterDescription("Bitrix24 CRM contact id.")]
+    long ContactId) : IMcpRequest<BitrixCrmDealListResponse>;
+
 [McpMethod("bitrix_crm_contact_get")]
 [ContractVersion("1.0.0")]
 [RequiresPermission("bitrix.crm.contact.read")]
@@ -108,6 +138,25 @@ public sealed record BitrixCrmContactListRequest(
     JsonObject? Filter) : IMcpRequest<BitrixCrmContactListResponse>;
 
 public sealed record BitrixCrmContactListResponse(JsonArray Contacts);
+
+[McpMethod("bitrix_crm_contacts_list_all")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.contact.read")]
+[OperationRisk(OperationRisk.Read)]
+[Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
+[McpDescription("List all Bitrix24 CRM contacts.")]
+public sealed record BitrixCrmContactsListAllRequest() : IMcpRequest<BitrixCrmContactListResponse>;
+
+[McpMethod("bitrix_crm_contacts_find_by_email")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.contact.read")]
+[OperationRisk(OperationRisk.Read)]
+[Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
+[McpDescription("Find Bitrix24 CRM contacts by email.")]
+public sealed record BitrixCrmContactsFindByEmailRequest(
+    [property: CacheKey]
+    [property: McpParameterDescription("Contact email address.")]
+    string Email) : IMcpRequest<BitrixCrmContactListResponse>;
 
 [McpMethod("bitrix_crm_contact_update")]
 [ContractVersion("1.0.0")]
@@ -135,6 +184,44 @@ public sealed record BitrixCrmContactUpdateRequest(
     string? Email) : IMcpRequest<BitrixCrmContactUpdateResponse>;
 
 public sealed record BitrixCrmContactUpdateResponse(bool Success, string Message);
+
+[McpMethod("bitrix_crm_contact_update_name")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.contact.write")]
+[OperationRisk(OperationRisk.WriteMedium)]
+[RequiresIdempotency]
+[DoNotCache]
+[InvalidatesCache("bitrix:crm.contact:{Id}")]
+[McpDescription("Update Bitrix24 CRM contact name fields.")]
+public sealed record BitrixCrmContactUpdateNameRequest(
+    [property: CacheKey]
+    [property: McpParameterDescription("Bitrix24 CRM contact id to update.")]
+    long Id,
+
+    [property: McpParameterDescription("Contact first name.")]
+    string Name,
+
+    [property: McpParameterDescription("Optional contact last name.")]
+    string? LastName,
+
+    [property: McpParameterDescription("Optional contact middle name.")]
+    string? MiddleName) : IMcpRequest<BitrixCrmContactUpdateResponse>;
+
+[McpMethod("bitrix_crm_contact_update_email")]
+[ContractVersion("1.0.0")]
+[RequiresPermission("bitrix.crm.contact.write")]
+[OperationRisk(OperationRisk.WriteMedium)]
+[RequiresIdempotency]
+[DoNotCache]
+[InvalidatesCache("bitrix:crm.contact:{Id}")]
+[McpDescription("Update Bitrix24 CRM contact email.")]
+public sealed record BitrixCrmContactUpdateEmailRequest(
+    [property: CacheKey]
+    [property: McpParameterDescription("Bitrix24 CRM contact id to update.")]
+    long Id,
+
+    [property: McpParameterDescription("Contact email address.")]
+    string Email) : IMcpRequest<BitrixCrmContactUpdateResponse>;
 
 [McpMethod("bitrix_crm_deal_training_direction_update")]
 [ContractVersion("1.0.0")]

@@ -1,9 +1,11 @@
+using System.Reflection;
 using System.Text.Json.Nodes;
 using AshaBridge.Core.Runtime;
 using AshaBridge.Extensions.Bitrix24.Contracts;
 using AshaBridge.Extensions.Moodle.Contracts;
 using AshaBridge.Sdk.Contracts;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
 namespace AshaBridge.AspNetCore.Extensions;
@@ -12,7 +14,8 @@ namespace AshaBridge.AspNetCore.Extensions;
 public sealed class AshaBridgeMcpToolSurface(
     StreamingInvocationRuntime runtime,
     IHttpContextAccessor httpContextAccessor,
-    IServiceProvider services)
+    IServiceProvider services,
+    ILogger<AshaBridgeMcpToolSurface> logger)
 {
     [McpServerTool(Name = "bitrix_crm_item_get", ReadOnly = true)]
     public Task<BitrixCrmItemGetResponse> BitrixCrmItemGet(int entityTypeId, long id, CancellationToken ct) =>
@@ -112,16 +115,33 @@ public sealed class AshaBridgeMcpToolSurface(
     }
 
     [McpServerTool(Name = "moodle_user_find_by_email", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleFindUserByEmail(string email, CancellationToken ct) =>
-        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("email", email), ct);
+    public Task<MoodleGetUserResponse> MoodleFindUserByEmail(string email = "", string query = "", CancellationToken ct = default)
+    {
+        var lookup = FirstNotEmpty(email, query);
+        return lookup is null
+            ? MissingLookupAsync("moodle_user_find_by_email", "email|value|query")
+            : InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("email", lookup), ct);
+    }
 
     [McpServerTool(Name = "moodle_user_find_by_id", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleFindUserById(long id, CancellationToken ct) =>
-        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("id", id.ToString(System.Globalization.CultureInfo.InvariantCulture)), ct);
+    public Task<MoodleGetUserResponse> MoodleFindUserById(long id = 0, string query = "", CancellationToken ct = default)
+    {
+        var lookup = id > 0
+            ? id.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : FirstNotEmpty(query);
+        return lookup is null
+            ? MissingLookupAsync("moodle_user_find_by_id", "id|value|query")
+            : InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("id", lookup), ct);
+    }
 
     [McpServerTool(Name = "moodle_user_find_by_username", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleFindUserByUsername(string username, CancellationToken ct) =>
-        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("username", username), ct);
+    public Task<MoodleGetUserResponse> MoodleFindUserByUsername(string username = "", string query = "", CancellationToken ct = default)
+    {
+        var lookup = FirstNotEmpty(username, query);
+        return lookup is null
+            ? MissingLookupAsync("moodle_user_find_by_username", "username|value|query")
+            : InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("username", lookup), ct);
+    }
 
     [McpServerTool(Name = "moodle_core_auth_request_password_reset", ReadOnly = false, Destructive = false)]
     public Task<MoodleRawResponse> MoodleRequestPasswordReset(string username = "", string email = "", CancellationToken ct = default) =>
@@ -177,15 +197,31 @@ public sealed class AshaBridgeMcpToolSurface(
             services: services,
             requestAborted: http?.RequestAborted ?? ct);
 
+        logger.LogInformation(
+            "Invoking AshaBridge MCP method {MethodName}. CorrelationId={CorrelationId}; Request={RequestSummary}",
+            methodName,
+            execution.CorrelationId,
+            SummarizeRequest(request));
+
         await foreach (var @event in runtime.InvokeAsync(methodName, request, execution, ct).ConfigureAwait(false))
         {
             if (@event is MethodCompletedEvent<TResponse> completed)
             {
+                logger.LogInformation(
+                    "Completed AshaBridge MCP method {MethodName}. CorrelationId={CorrelationId}",
+                    methodName,
+                    execution.CorrelationId);
                 return completed.Response;
             }
 
             if (@event is MethodFailedEvent failed)
             {
+                logger.LogWarning(
+                    "Failed AshaBridge MCP method {MethodName}. CorrelationId={CorrelationId}; ErrorCode={ErrorCode}; ErrorMessage={ErrorMessage}",
+                    methodName,
+                    execution.CorrelationId,
+                    failed.Error.Code,
+                    failed.Error.Message);
                 throw new InvalidOperationException($"{failed.Error.Code}: {failed.Error.Message}");
             }
         }
@@ -201,6 +237,46 @@ public sealed class AshaBridgeMcpToolSurface(
 
     private static string? EmptyToNull(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private Task<MoodleGetUserResponse> MissingLookupAsync(string toolName, string expectedArguments)
+    {
+        logger.LogWarning(
+            "Moodle lookup tool {ToolName} was called without a lookup value. Expected one of: {ExpectedArguments}",
+            toolName,
+            expectedArguments);
+        return Task.FromResult(new MoodleGetUserResponse(null));
+    }
+
+    private static string? FirstNotEmpty(params string[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private static string SummarizeRequest<TRequest>(TRequest request)
+    {
+        var values = request?.GetType()
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Select(property => $"{property.Name}={FormatLogValue(property.Name, property.GetValue(request))}");
+
+        return values is null ? "<null>" : string.Join(", ", values);
+    }
+
+    private static string FormatLogValue(string name, object? value)
+    {
+        if (value is null)
+        {
+            return "<null>";
+        }
+
+        if (name.Contains("password", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("token", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("body", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("comment", StringComparison.OrdinalIgnoreCase))
+        {
+            return "<redacted>";
+        }
+
+        var text = value.ToString() ?? "";
+        return text.Length <= 160 ? text : string.Concat(text.AsSpan(0, 160), "...");
+    }
 
     private static long? PositiveToNullable(long value) =>
         value > 0 ? value : null;

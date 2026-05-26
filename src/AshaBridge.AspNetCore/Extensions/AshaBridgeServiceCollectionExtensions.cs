@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AshaBridge.AspNetCore.Auth;
 using AshaBridge.Caching;
 using AshaBridge.Core.Extensions;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ModelContextProtocol.Protocol;
 
 namespace AshaBridge.AspNetCore.Extensions;
 
@@ -65,12 +67,31 @@ public static class AshaBridgeServiceCollectionExtensions
 
         services.AddMcpServer()
             .WithHttpTransport()
+            .WithRequestFilters(filters => filters.AddCallToolFilter(next => async (request, ct) =>
+            {
+                UnwrapSingleValueObjectArgument(request.Params);
+                return await next(request, ct).ConfigureAwait(false);
+            }))
             .WithTools<AshaBridgeMcpToolSurface>();
 
         RegisterBuiltInExtensions(services, configuration, methods, contracts, extensions);
         services.AddSingleton<IAshaBridgeStartupMarker, AshaBridgeStartupMarker>();
 
         return services;
+    }
+
+    private static void UnwrapSingleValueObjectArgument(CallToolRequestParams? parameters)
+    {
+        var arguments = parameters?.Arguments;
+        if (arguments is not { Count: 1 }
+            || !arguments.TryGetValue("value", out var value)
+            || value.ValueKind is not JsonValueKind.Object)
+        {
+            return;
+        }
+
+        parameters!.Arguments = value.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.Ordinal);
     }
 
     private static void RegisterBuiltInExtensions(

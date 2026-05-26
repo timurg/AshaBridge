@@ -70,8 +70,8 @@ public sealed class AshaBridgeMcpToolSurface(
         InvokeAsync<MoodleUpdateUserRequest, MoodleUpdateUserResponse>("moodle_core_user_update_user", request, ct);
 
     [McpServerTool(Name = "moodle_core_user_get_user", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleGetUser(MoodleGetUserRequest request, CancellationToken ct) =>
-        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", request, ct);
+    public Task<MoodleGetUserResponse> MoodleGetUser(string key, string value, CancellationToken ct) =>
+        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest(key, value), ct);
 
     [McpServerTool(Name = "moodle_core_auth_request_password_reset", ReadOnly = false, Destructive = false)]
     public Task<MoodleRawResponse> MoodleRequestPasswordReset(MoodleRequestPasswordResetRequest request, CancellationToken ct) =>

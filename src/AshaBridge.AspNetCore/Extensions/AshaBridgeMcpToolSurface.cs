@@ -19,32 +19,32 @@ public sealed class AshaBridgeMcpToolSurface(
         InvokeAsync<BitrixCrmItemGetRequest, BitrixCrmItemGetResponse>("bitrix_crm_item_get", new BitrixCrmItemGetRequest(entityTypeId, id), ct);
 
     [McpServerTool(Name = "bitrix_crm_item_list", ReadOnly = true)]
-    public Task<BitrixCrmItemListResponse> BitrixCrmItemList(int entityTypeId, JsonObject? filter = null, CancellationToken ct = default) =>
-        InvokeAsync<BitrixCrmItemListRequest, BitrixCrmItemListResponse>("bitrix_crm_item_list", new BitrixCrmItemListRequest(entityTypeId, filter), ct);
+    public Task<BitrixCrmItemListResponse> BitrixCrmItemList(int entityTypeId, string filterJson = "", CancellationToken ct = default) =>
+        InvokeAsync<BitrixCrmItemListRequest, BitrixCrmItemListResponse>("bitrix_crm_item_list", new BitrixCrmItemListRequest(entityTypeId, ParseOptionalJsonObject(filterJson, nameof(filterJson))), ct);
 
     [McpServerTool(Name = "bitrix_crm_item_update", ReadOnly = false, Destructive = false, Idempotent = true)]
-    public Task<BitrixCrmItemUpdateResponse> BitrixCrmItemUpdate(int entityTypeId, long id, JsonObject fields, CancellationToken ct) =>
-        InvokeAsync<BitrixCrmItemUpdateRequest, BitrixCrmItemUpdateResponse>("bitrix_crm_item_update", new BitrixCrmItemUpdateRequest(entityTypeId, id, fields), ct);
+    public Task<BitrixCrmItemUpdateResponse> BitrixCrmItemUpdate(int entityTypeId, long id, string fieldsJson, CancellationToken ct) =>
+        InvokeAsync<BitrixCrmItemUpdateRequest, BitrixCrmItemUpdateResponse>("bitrix_crm_item_update", new BitrixCrmItemUpdateRequest(entityTypeId, id, ParseRequiredJsonObject(fieldsJson, nameof(fieldsJson))), ct);
 
     [McpServerTool(Name = "bitrix_crm_deal_get", ReadOnly = true)]
     public Task<BitrixCrmDealGetResponse> BitrixCrmDealGet(long id, CancellationToken ct) =>
         InvokeAsync<BitrixCrmDealGetRequest, BitrixCrmDealGetResponse>("bitrix_crm_deal_get", new BitrixCrmDealGetRequest(id), ct);
 
     [McpServerTool(Name = "bitrix_crm_deal_list", ReadOnly = true)]
-    public Task<BitrixCrmDealListResponse> BitrixCrmDealList(JsonObject? filter = null, CancellationToken ct = default) =>
-        InvokeAsync<BitrixCrmDealListRequest, BitrixCrmDealListResponse>("bitrix_crm_deal_list", new BitrixCrmDealListRequest(filter), ct);
+    public Task<BitrixCrmDealListResponse> BitrixCrmDealList(string filterJson = "", CancellationToken ct = default) =>
+        InvokeAsync<BitrixCrmDealListRequest, BitrixCrmDealListResponse>("bitrix_crm_deal_list", new BitrixCrmDealListRequest(ParseOptionalJsonObject(filterJson, nameof(filterJson))), ct);
 
     [McpServerTool(Name = "bitrix_crm_contact_get", ReadOnly = true)]
     public Task<BitrixCrmContactGetResponse> BitrixCrmContactGet(long id, CancellationToken ct) =>
         InvokeAsync<BitrixCrmContactGetRequest, BitrixCrmContactGetResponse>("bitrix_crm_contact_get", new BitrixCrmContactGetRequest(id), ct);
 
     [McpServerTool(Name = "bitrix_crm_contact_list", ReadOnly = true)]
-    public Task<BitrixCrmContactListResponse> BitrixCrmContactList(JsonObject? filter = null, CancellationToken ct = default) =>
-        InvokeAsync<BitrixCrmContactListRequest, BitrixCrmContactListResponse>("bitrix_crm_contact_list", new BitrixCrmContactListRequest(filter), ct);
+    public Task<BitrixCrmContactListResponse> BitrixCrmContactList(string filterJson = "", CancellationToken ct = default) =>
+        InvokeAsync<BitrixCrmContactListRequest, BitrixCrmContactListResponse>("bitrix_crm_contact_list", new BitrixCrmContactListRequest(ParseOptionalJsonObject(filterJson, nameof(filterJson))), ct);
 
     [McpServerTool(Name = "bitrix_crm_contact_update", ReadOnly = false, Destructive = false, Idempotent = true)]
-    public Task<BitrixCrmContactUpdateResponse> BitrixCrmContactUpdate(long id, string? name = null, string? lastName = null, string? middleName = null, string? email = null, CancellationToken ct = default) =>
-        InvokeAsync<BitrixCrmContactUpdateRequest, BitrixCrmContactUpdateResponse>("bitrix_crm_contact_update", new BitrixCrmContactUpdateRequest(id, name, lastName, middleName, email), ct);
+    public Task<BitrixCrmContactUpdateResponse> BitrixCrmContactUpdate(long id, string name = "", string lastName = "", string middleName = "", string email = "", CancellationToken ct = default) =>
+        InvokeAsync<BitrixCrmContactUpdateRequest, BitrixCrmContactUpdateResponse>("bitrix_crm_contact_update", new BitrixCrmContactUpdateRequest(id, EmptyToNull(name), EmptyToNull(lastName), EmptyToNull(middleName), EmptyToNull(email)), ct);
 
     [McpServerTool(Name = "bitrix_crm_deal_training_direction_update", ReadOnly = false, Destructive = false, Idempotent = true)]
     public Task<BitrixCrmDealTrainingDirectionUpdateResponse> BitrixCrmDealTrainingDirectionUpdate(long id, string direction, CancellationToken ct) =>
@@ -69,37 +69,35 @@ public sealed class AshaBridgeMcpToolSurface(
     [McpServerTool(Name = "moodle_core_user_update_user", ReadOnly = false, Destructive = false, Idempotent = true)]
     public Task<MoodleUpdateUserResponse> MoodleUpdateUser(
         long id,
-        string? username = null,
-        string? auth = null,
-        bool? suspended = null,
-        string? password = null,
-        string? firstName = null,
-        string? lastName = null,
-        string? email = null,
-        int? mailDisplay = null,
-        string? city = null,
-        string? country = null,
-        string? timezone = null,
-        string? description = null,
-        string? idNumber = null,
-        string? institution = null,
-        string? department = null,
-        string? phone1 = null,
-        string? phone2 = null,
-        string? address = null,
-        string? lang = null,
+        string username = "",
+        string auth = "",
+        bool suspended = false,
+        bool updateSuspended = false,
+        string password = "",
+        string firstName = "",
+        string lastName = "",
+        string email = "",
+        int mailDisplay = -1,
+        string city = "",
+        string country = "",
+        string timezone = "",
+        string description = "",
+        string idNumber = "",
+        string institution = "",
+        string department = "",
+        string phone1 = "",
+        string phone2 = "",
+        string address = "",
+        string lang = "",
         CancellationToken ct = default) =>
         InvokeAsync<MoodleUpdateUserRequest, MoodleUpdateUserResponse>(
             "moodle_core_user_update_user",
-            new MoodleUpdateUserRequest(id, username, auth, suspended, password, firstName, lastName, email, mailDisplay, city, country, timezone, description, idNumber, institution, department, phone1, phone2, address, lang),
+            new MoodleUpdateUserRequest(id, EmptyToNull(username), EmptyToNull(auth), updateSuspended ? suspended : null, EmptyToNull(password), EmptyToNull(firstName), EmptyToNull(lastName), EmptyToNull(email), mailDisplay >= 0 ? mailDisplay : null, EmptyToNull(city), EmptyToNull(country), EmptyToNull(timezone), EmptyToNull(description), EmptyToNull(idNumber), EmptyToNull(institution), EmptyToNull(department), EmptyToNull(phone1), EmptyToNull(phone2), EmptyToNull(address), EmptyToNull(lang)),
             ct);
 
     [McpServerTool(Name = "moodle_core_user_get_user", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleGetUser(JsonObject? request = null, string? key = null, string? value = null, CancellationToken ct = default)
+    public Task<MoodleGetUserResponse> MoodleGetUser(string key, string value, CancellationToken ct)
     {
-        key ??= request?["key"]?.GetValue<string>() ?? request?["Key"]?.GetValue<string>();
-        value ??= request?["value"]?.GetValue<string>() ?? request?["Value"]?.GetValue<string>();
-
         if (string.IsNullOrWhiteSpace(key))
         {
             throw new ArgumentException("The 'key' argument is required.", nameof(key));
@@ -113,17 +111,29 @@ public sealed class AshaBridgeMcpToolSurface(
         return InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest(key, value), ct);
     }
 
+    [McpServerTool(Name = "moodle_user_find_by_email", ReadOnly = true)]
+    public Task<MoodleGetUserResponse> MoodleFindUserByEmail(string email, CancellationToken ct) =>
+        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("email", email), ct);
+
+    [McpServerTool(Name = "moodle_user_find_by_id", ReadOnly = true)]
+    public Task<MoodleGetUserResponse> MoodleFindUserById(long id, CancellationToken ct) =>
+        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("id", id.ToString(System.Globalization.CultureInfo.InvariantCulture)), ct);
+
+    [McpServerTool(Name = "moodle_user_find_by_username", ReadOnly = true)]
+    public Task<MoodleGetUserResponse> MoodleFindUserByUsername(string username, CancellationToken ct) =>
+        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("username", username), ct);
+
     [McpServerTool(Name = "moodle_core_auth_request_password_reset", ReadOnly = false, Destructive = false)]
-    public Task<MoodleRawResponse> MoodleRequestPasswordReset(string? username = null, string? email = null, CancellationToken ct = default) =>
-        InvokeAsync<MoodleRequestPasswordResetRequest, MoodleRawResponse>("moodle_core_auth_request_password_reset", new MoodleRequestPasswordResetRequest(username, email), ct);
+    public Task<MoodleRawResponse> MoodleRequestPasswordReset(string username = "", string email = "", CancellationToken ct = default) =>
+        InvokeAsync<MoodleRequestPasswordResetRequest, MoodleRawResponse>("moodle_core_auth_request_password_reset", new MoodleRequestPasswordResetRequest(EmptyToNull(username), EmptyToNull(email)), ct);
 
     [McpServerTool(Name = "moodle_core_enrol_get_users_courses", ReadOnly = true)]
     public Task<MoodleGetUsersCoursesResponse> MoodleGetUsersCourses(long userId, CancellationToken ct) =>
         InvokeAsync<MoodleGetUsersCoursesRequest, MoodleGetUsersCoursesResponse>("moodle_core_enrol_get_users_courses", new MoodleGetUsersCoursesRequest(userId), ct);
 
     [McpServerTool(Name = "moodle_enrol_manual_enrol_user", ReadOnly = false, Destructive = false, Idempotent = true)]
-    public Task<MoodleRawResponse> MoodleManualEnrolUser(long roleId, long userId, long courseId, long? timeStart = null, long? timeEnd = null, int? suspend = null, CancellationToken ct = default) =>
-        InvokeAsync<MoodleManualEnrolUserRequest, MoodleRawResponse>("moodle_enrol_manual_enrol_user", new MoodleManualEnrolUserRequest(roleId, userId, courseId, timeStart, timeEnd, suspend), ct);
+    public Task<MoodleRawResponse> MoodleManualEnrolUser(long roleId, long userId, long courseId, long timeStart = 0, long timeEnd = 0, int suspend = -1, CancellationToken ct = default) =>
+        InvokeAsync<MoodleManualEnrolUserRequest, MoodleRawResponse>("moodle_enrol_manual_enrol_user", new MoodleManualEnrolUserRequest(roleId, userId, courseId, PositiveToNullable(timeStart), PositiveToNullable(timeEnd), suspend >= 0 ? suspend : null), ct);
 
     [McpServerTool(Name = "moodle_core_completion_get_activities_completion_status", ReadOnly = true)]
     public Task<MoodleGetActivitiesCompletionStatusResponse> MoodleGetActivitiesCompletionStatus(long courseId, long userId, CancellationToken ct) =>
@@ -142,16 +152,16 @@ public sealed class AshaBridgeMcpToolSurface(
         InvokeAsync<MoodleGetGradeItemsRequest, MoodleGetGradeItemsResponse>("moodle_gradereport_user_get_grade_items", new MoodleGetGradeItemsRequest(courseId, userId), ct);
 
     [McpServerTool(Name = "moodle_core_course_get_courses", ReadOnly = true)]
-    public Task<MoodleRawResponse> MoodleGetCourses(IReadOnlyList<long>? ids = null, CancellationToken ct = default) =>
-        InvokeAsync<MoodleGetCoursesRequest, MoodleRawResponse>("moodle_core_course_get_courses", new MoodleGetCoursesRequest(ids), ct);
+    public Task<MoodleRawResponse> MoodleGetCourses(string idsCsv = "", CancellationToken ct = default) =>
+        InvokeAsync<MoodleGetCoursesRequest, MoodleRawResponse>("moodle_core_course_get_courses", new MoodleGetCoursesRequest(ParseLongCsv(idsCsv)), ct);
 
     [McpServerTool(Name = "moodle_core_course_get_courses_by_field", ReadOnly = true)]
-    public Task<MoodleRawResponse> MoodleGetCoursesByField(string? field = null, string? value = null, CancellationToken ct = default) =>
-        InvokeAsync<MoodleGetCoursesByFieldRequest, MoodleRawResponse>("moodle_core_course_get_courses_by_field", new MoodleGetCoursesByFieldRequest(field, value), ct);
+    public Task<MoodleRawResponse> MoodleGetCoursesByField(string field = "", string value = "", CancellationToken ct = default) =>
+        InvokeAsync<MoodleGetCoursesByFieldRequest, MoodleRawResponse>("moodle_core_course_get_courses_by_field", new MoodleGetCoursesByFieldRequest(EmptyToNull(field), EmptyToNull(value)), ct);
 
     [McpServerTool(Name = "moodle_core_course_get_contents", ReadOnly = true)]
-    public Task<MoodleRawResponse> MoodleGetCourseContents(long courseId, IReadOnlyList<MoodleNameValueOption>? options = null, CancellationToken ct = default) =>
-        InvokeAsync<MoodleGetCourseContentsRequest, MoodleRawResponse>("moodle_core_course_get_contents", new MoodleGetCourseContentsRequest(courseId, options), ct);
+    public Task<MoodleRawResponse> MoodleGetCourseContents(long courseId, string optionsJson = "", CancellationToken ct = default) =>
+        InvokeAsync<MoodleGetCourseContentsRequest, MoodleRawResponse>("moodle_core_course_get_contents", new MoodleGetCourseContentsRequest(courseId, ParseMoodleOptions(optionsJson)), ct);
 
     private async Task<TResponse> InvokeAsync<TRequest, TResponse>(string methodName, TRequest request, CancellationToken ct)
         where TRequest : IMcpRequest<TResponse>
@@ -187,5 +197,53 @@ public sealed class AshaBridgeMcpToolSurface(
     {
         var value = http?.Request.Headers["Idempotency-Key"].FirstOrDefault();
         return string.IsNullOrWhiteSpace(value) ? null : new IdempotencyKey(value);
+    }
+
+    private static string? EmptyToNull(string value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private static long? PositiveToNullable(long value) =>
+        value > 0 ? value : null;
+
+    private static IReadOnlyList<long>? ParseLongCsv(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(part => long.Parse(part, System.Globalization.CultureInfo.InvariantCulture))
+            .ToArray();
+    }
+
+    private static JsonObject? ParseOptionalJsonObject(string value, string parameterName) =>
+        string.IsNullOrWhiteSpace(value) ? null : ParseRequiredJsonObject(value, parameterName);
+
+    private static JsonObject ParseRequiredJsonObject(string value, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException("A JSON object string is required.", parameterName);
+        }
+
+        return JsonNode.Parse(value) as JsonObject
+            ?? throw new ArgumentException("The value must be a JSON object.", parameterName);
+    }
+
+    private static IReadOnlyList<MoodleNameValueOption>? ParseMoodleOptions(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var array = JsonNode.Parse(value) as JsonArray
+            ?? throw new ArgumentException("The optionsJson value must be a JSON array.", nameof(value));
+
+        return array.Select(item => new MoodleNameValueOption(
+                item?["name"]?.GetValue<string>() ?? throw new ArgumentException("Each option must include a name.", nameof(value)),
+                item?["value"]?.GetValue<string>() ?? throw new ArgumentException("Each option must include a value.", nameof(value))))
+            .ToArray();
     }
 }

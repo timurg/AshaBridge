@@ -10,6 +10,8 @@ using ModelContextProtocol.Server;
 
 namespace AshaBridge.AspNetCore.Extensions;
 
+public sealed record MoodleFindUserResponse(bool Found, string Field, string Value, MoodleUser? User);
+
 [McpServerToolType]
 public sealed class AshaBridgeMcpToolSurface(
     StreamingInvocationRuntime runtime,
@@ -115,32 +117,32 @@ public sealed class AshaBridgeMcpToolSurface(
     }
 
     [McpServerTool(Name = "moodle_user_find_by_email", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleFindUserByEmail(string email = "", string query = "", CancellationToken ct = default)
+    public Task<MoodleFindUserResponse> MoodleFindUserByEmail(string email = "", string query = "", CancellationToken ct = default)
     {
         var lookup = FirstNotEmpty(email, query);
         return lookup is null
             ? MissingLookupAsync("moodle_user_find_by_email", "email|value|query")
-            : InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("email", lookup), ct);
+            : FindMoodleUserAsync("email", lookup, ct);
     }
 
     [McpServerTool(Name = "moodle_user_find_by_id", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleFindUserById(long id = 0, string query = "", CancellationToken ct = default)
+    public Task<MoodleFindUserResponse> MoodleFindUserById(long id = 0, string query = "", CancellationToken ct = default)
     {
         var lookup = id > 0
             ? id.ToString(System.Globalization.CultureInfo.InvariantCulture)
             : FirstNotEmpty(query);
         return lookup is null
             ? MissingLookupAsync("moodle_user_find_by_id", "id|value|query")
-            : InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("id", lookup), ct);
+            : FindMoodleUserAsync("id", lookup, ct);
     }
 
     [McpServerTool(Name = "moodle_user_find_by_username", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleFindUserByUsername(string username = "", string query = "", CancellationToken ct = default)
+    public Task<MoodleFindUserResponse> MoodleFindUserByUsername(string username = "", string query = "", CancellationToken ct = default)
     {
         var lookup = FirstNotEmpty(username, query);
         return lookup is null
             ? MissingLookupAsync("moodle_user_find_by_username", "username|value|query")
-            : InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest("username", lookup), ct);
+            : FindMoodleUserAsync("username", lookup, ct);
     }
 
     [McpServerTool(Name = "moodle_core_auth_request_password_reset", ReadOnly = false, Destructive = false)]
@@ -238,13 +240,23 @@ public sealed class AshaBridgeMcpToolSurface(
     private static string? EmptyToNull(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value;
 
-    private Task<MoodleGetUserResponse> MissingLookupAsync(string toolName, string expectedArguments)
+    private Task<MoodleFindUserResponse> MissingLookupAsync(string toolName, string expectedArguments)
     {
         logger.LogWarning(
             "Moodle lookup tool {ToolName} was called without a lookup value. Expected one of: {ExpectedArguments}",
             toolName,
             expectedArguments);
-        return Task.FromResult(new MoodleGetUserResponse(null));
+        return Task.FromResult(new MoodleFindUserResponse(false, "", "", null));
+    }
+
+    private async Task<MoodleFindUserResponse> FindMoodleUserAsync(string field, string value, CancellationToken ct)
+    {
+        var response = await InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>(
+            "moodle_core_user_get_user",
+            new MoodleGetUserRequest(field, value),
+            ct).ConfigureAwait(false);
+
+        return new MoodleFindUserResponse(response.User is not null, field, value, response.User);
     }
 
     private static string? FirstNotEmpty(params string[] values) =>

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AshaBridge.AspNetCore.Auth;
 using AshaBridge.Caching;
 using AshaBridge.Core.Extensions;
@@ -67,17 +68,75 @@ public static class AshaBridgeServiceCollectionExtensions
 
         services.AddMcpServer()
             .WithHttpTransport()
-            .WithRequestFilters(filters => filters.AddCallToolFilter(next => async (request, ct) =>
+            .WithRequestFilters(filters =>
             {
-                UnwrapSingleValueObjectArgument(request.Params);
-                return await next(request, ct).ConfigureAwait(false);
-            }))
+                filters.AddListToolsFilter(next => async (request, ct) =>
+                {
+                    var result = await next(request, ct).ConfigureAwait(false);
+                    AddN8nValueCompatibilityToToolSchemas(result.Tools);
+                    return result;
+                });
+                filters.AddCallToolFilter(next => async (request, ct) =>
+                {
+                    UnwrapSingleValueObjectArgument(request.Params);
+                    return await next(request, ct).ConfigureAwait(false);
+                });
+            })
             .WithTools<AshaBridgeMcpToolSurface>();
 
         RegisterBuiltInExtensions(services, configuration, methods, contracts, extensions);
         services.AddSingleton<IAshaBridgeStartupMarker, AshaBridgeStartupMarker>();
 
         return services;
+    }
+
+    private static void AddN8nValueCompatibilityToToolSchemas(IEnumerable<Tool> tools)
+    {
+        foreach (var tool in tools)
+        {
+            if (!IsN8nValueCompatibleLookupTool(tool.Name))
+            {
+                continue;
+            }
+
+            var schema = JsonNode.Parse(tool.InputSchema.GetRawText()) as JsonObject;
+            var properties = schema?["properties"] as JsonObject;
+            if (schema is null || properties is null || properties.ContainsKey("value"))
+            {
+                continue;
+            }
+
+            properties["value"] = BuildN8nValueSchema(tool.Name);
+            tool.InputSchema = JsonSerializer.SerializeToElement(schema);
+        }
+    }
+
+    private static bool IsN8nValueCompatibleLookupTool(string? toolName) =>
+        toolName is "moodle_user_find_by_email"
+            or "moodle_user_find_by_id"
+            or "moodle_user_find_by_username";
+
+    private static JsonObject BuildN8nValueSchema(string? toolName)
+    {
+        var properties = new JsonObject
+        {
+            ["value"] = new JsonObject { ["type"] = "string" },
+            ["query"] = new JsonObject { ["type"] = "string" }
+        };
+
+        properties[toolName switch
+        {
+            "moodle_user_find_by_id" => "id",
+            "moodle_user_find_by_username" => "username",
+            _ => "email"
+        }] = new JsonObject { ["type"] = "string" };
+
+        return new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = properties,
+            ["additionalProperties"] = true
+        };
     }
 
     private static void UnwrapSingleValueObjectArgument(CallToolRequestParams? parameters)

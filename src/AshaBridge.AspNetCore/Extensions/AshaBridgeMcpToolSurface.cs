@@ -95,8 +95,23 @@ public sealed class AshaBridgeMcpToolSurface(
             ct);
 
     [McpServerTool(Name = "moodle_core_user_get_user", ReadOnly = true)]
-    public Task<MoodleGetUserResponse> MoodleGetUser(string key, string value, CancellationToken ct) =>
-        InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest(key, value), ct);
+    public Task<MoodleGetUserResponse> MoodleGetUser(JsonObject? request = null, string? key = null, string? value = null, CancellationToken ct = default)
+    {
+        key ??= request?["key"]?.GetValue<string>() ?? request?["Key"]?.GetValue<string>();
+        value ??= request?["value"]?.GetValue<string>() ?? request?["Value"]?.GetValue<string>();
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new ArgumentException("The 'key' argument is required.", nameof(key));
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException("The 'value' argument is required.", nameof(value));
+        }
+
+        return InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest(key, value), ct);
+    }
 
     [McpServerTool(Name = "moodle_core_auth_request_password_reset", ReadOnly = false, Destructive = false)]
     public Task<MoodleRawResponse> MoodleRequestPasswordReset(string? username = null, string? email = null, CancellationToken ct = default) =>

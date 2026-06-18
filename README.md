@@ -169,6 +169,27 @@ Or run directly:
 dotnet run --project src/AshaBridge.Api/AshaBridge.Api.csproj --urls http://127.0.0.1:5088
 ```
 
+## Logging
+
+Serilog writes to the console and to daily rolling files. The default file path is
+`logs/ashabridge-.log` relative to the process working directory. Override it for
+systemd with `AshaBridgeLogging__FilePath`:
+
+```ini
+Environment=AshaBridgeLogging__FilePath=/var/log/ashabridge/ashabridge-.log
+```
+
+Create the directory once and grant it to the service user:
+
+```bash
+sudo install -d -o <service-user> -g <service-group> /var/log/ashabridge
+sudo systemctl daemon-reload
+sudo systemctl restart ashabridge
+```
+
+If the configured directory is not writable, file logging is disabled and the
+application continues logging to stdout/journald with a warning.
+
 ## Endpoints
 
 - `GET /` - application status.

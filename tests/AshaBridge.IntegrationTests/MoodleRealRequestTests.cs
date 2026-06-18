@@ -1,5 +1,3 @@
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using AshaBridge.Extensions.Moodle.Contracts;
 
 namespace AshaBridge.IntegrationTests;
@@ -14,55 +12,37 @@ public sealed class MoodleRealRequestTests : IClassFixture<AshaBridgeRuntimeFixt
     }
 
     [Fact]
-    public async Task CoreUserGetUsersByField_FindsOrCreatesConfiguredUser()
+    public async Task UserFindById_FindsConfiguredUser()
     {
         var userId = await ResolveUserIdAsync();
-        Assert.True(userId > 0, "Moodle test user should exist or be created.");
 
-        var response = await fixture.InvokeAsync(new MoodleGetUsersByFieldRequest(MoodleUserLookupField.Id, [userId.ToString()]));
+        var response = await fixture.InvokeAsync(new MoodleFindUserByIdRequest(userId));
 
-        Assert.NotEmpty(response.Users);
+        Assert.True(response.Found);
+        Assert.Equal(userId, response.User?.Id);
     }
 
     [Fact]
-    public async Task CoreUserGetUsers_SearchesConfiguredUser()
+    public async Task UserFindByEmail_FindsConfiguredUser_WhenEmailIsConfigured()
     {
-        var response = await fixture.InvokeAsync(new MoodleGetUserRequest("email", fixture.Config.MoodleUserLookupValue));
+        var email = fixture.Config.MoodleUserLookupValue;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return;
+        }
 
-        Assert.NotNull(response.User);
+        var response = await fixture.InvokeAsync(new MoodleFindUserByEmailRequest(email));
+
+        Assert.True(response.Found);
     }
 
     [Fact]
-    public async Task CoreEnrolGetUsersCourses_UsesConfiguredToken_WhenUserIdIsConfigured()
-    {
-        var userId = await ResolveUserIdAsync();
-        Assert.True(userId > 0, "Moodle test user should exist or be created.");
-
-        await EnsureUserEnrolledAsync(userId);
-
-        await fixture.InvokeAsync(new MoodleGetUsersCoursesRequest(userId));
-    }
-
-    [Fact]
-    public async Task CoreCourseGetCourses_GetsConfiguredCourse()
+    public async Task CourseGetById_GetsConfiguredCourse()
     {
         var courseId = fixture.Config.MoodleCourseId;
         Assert.True(courseId > 0, "integrationTests:moodle:courseId must be configured.");
 
-        var response = await fixture.InvokeAsync(new MoodleGetCoursesRequest([courseId]));
-
-        var courses = response.Data?["items"]?.AsArray();
-        Assert.NotNull(courses);
-        Assert.Contains(courses, course => course?["id"]?.GetValue<long>() == courseId);
-    }
-
-    [Fact]
-    public async Task CoreCourseGetCoursesByField_GetsConfiguredCourse()
-    {
-        var courseId = fixture.Config.MoodleCourseId;
-        Assert.True(courseId > 0, "integrationTests:moodle:courseId must be configured.");
-
-        var response = await fixture.InvokeAsync(new MoodleGetCoursesByFieldRequest("id", courseId.ToString()));
+        var response = await fixture.InvokeAsync(new MoodleCourseGetByIdRequest(courseId));
 
         var courses = response.Data?["courses"]?.AsArray();
         Assert.NotNull(courses);
@@ -70,41 +50,32 @@ public sealed class MoodleRealRequestTests : IClassFixture<AshaBridgeRuntimeFixt
     }
 
     [Fact]
-    public async Task CoreCourseGetContents_GetsConfiguredCourseContents()
+    public async Task CourseGetContents_GetsConfiguredCourseContents()
     {
         var courseId = fixture.Config.MoodleCourseId;
         Assert.True(courseId > 0, "integrationTests:moodle:courseId must be configured.");
 
-        var response = await fixture.InvokeAsync(new MoodleGetCourseContentsRequest(courseId, null));
+        var response = await fixture.InvokeAsync(new MoodleCourseGetContentsRequest(courseId));
 
         Assert.NotNull(response.Data?["items"]?.AsArray());
     }
 
     [Fact]
-    public async Task CoreCompletionGetActivitiesCompletionStatus_UsesConfiguredToken_WhenCourseAndUserAreConfigured()
+    public async Task UserEnrol_UsesConfiguredRole_WhenWritesAreEnabled()
     {
+        if (!fixture.Config.AllowWrites)
+        {
+            return;
+        }
+
         var userId = await ResolveUserIdAsync();
-        await EnsureUserEnrolledAsync(userId);
+        var courseId = fixture.Config.MoodleCourseId;
+        Assert.True(courseId > 0, "integrationTests:moodle:courseId must be configured.");
 
-        await fixture.InvokeAsync(new MoodleGetActivitiesCompletionStatusRequest(fixture.Config.MoodleCourseId, userId));
-    }
-
-    [Fact]
-    public async Task CoreCompletionGetCourseCompletionStatus_UsesConfiguredToken_WhenCourseAndUserAreConfigured()
-    {
-        var userId = await ResolveUserIdAsync();
-        await EnsureUserEnrolledAsync(userId);
-
-        await fixture.InvokeAsync(new MoodleGetCourseCompletionStatusRequest(fixture.Config.MoodleCourseId, userId));
-    }
-
-    [Fact]
-    public async Task GradereportUserGetGradeItems_UsesConfiguredToken_WhenCourseAndUserAreConfigured()
-    {
-        var userId = await ResolveUserIdAsync();
-        await EnsureUserEnrolledAsync(userId);
-
-        await fixture.InvokeAsync(new MoodleGetGradeItemsRequest(fixture.Config.MoodleCourseId, userId));
+        await fixture.InvokeAsync(new MoodleUserEnrolRequest(
+            fixture.Config.MoodleStudentRoleId,
+            userId,
+            courseId));
     }
 
     private async Task<long> ResolveUserIdAsync()
@@ -115,52 +86,10 @@ public sealed class MoodleRealRequestTests : IClassFixture<AshaBridgeRuntimeFixt
         }
 
         var email = fixture.Config.MoodleUserLookupValue;
-        Assert.False(string.IsNullOrWhiteSpace(email), "integrationTests:moodle:userLookupValue must contain the test user's email.");
+        Assert.False(string.IsNullOrWhiteSpace(email), "integrationTests:moodle:userLookupValue must contain an existing user's email.");
 
-        var existing = await fixture.InvokeAsync(new MoodleGetUsersByFieldRequest(MoodleUserLookupField.Email, [email]));
-
-        var found = existing.Users.FirstOrDefault()?.Id ?? 0;
-        if (found > 0)
-        {
-            return found;
-        }
-
-        var created = await fixture.InvokeAsync(new MoodleCreateUserRequest(
-                Email: email,
-                Password: CreateRandomPassword(),
-                FirstName: "AshaBridge",
-                LastName: "Integration Test"));
-
-        Assert.True(created.Id > 0, "Moodle user should be created through AshaBridge contract.");
-        return created.Id;
-    }
-
-    private async Task EnsureUserEnrolledAsync(long userId)
-    {
-        Assert.True(fixture.Config.MoodleCourseId > 0, "integrationTests:moodle:courseId must be configured.");
-        Assert.True(userId > 0, "Moodle user id must be resolved before enrolment.");
-
-        var courses = await fixture.InvokeAsync(new MoodleGetUsersCoursesRequest(userId));
-
-        if (courses.Courses.Any(course => course.Id == fixture.Config.MoodleCourseId))
-        {
-            return;
-        }
-
-        await fixture.InvokeAsync(new MoodleManualEnrolUserRequest(
-                RoleId: fixture.Config.MoodleStudentRoleId,
-                UserId: userId,
-                CourseId: fixture.Config.MoodleCourseId,
-                TimeStart: null,
-                TimeEnd: null,
-                Suspend: null));
-    }
-
-    private static string CreateRandomPassword()
-    {
-        var suffix = Regex.Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "[^a-zA-Z0-9]", "");
-        return $"Asha1!{suffix}";
+        var response = await fixture.InvokeAsync(new MoodleFindUserByEmailRequest(email));
+        Assert.True(response.Found, "The configured Moodle test user must already exist.");
+        return response.User!.Id;
     }
 }
-
-

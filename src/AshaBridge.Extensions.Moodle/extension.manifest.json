@@ -4,10 +4,24 @@
   "version": "1.0.0",
   "sdkVersion": ">=1.0.0 <2.0.0",
   "providesMethods": [
-    "moodle_core_user_get_users_by_field",
-    "moodle_core_enrol_get_users_courses",
-    "moodle_core_completion_get_activities_completion_status",
-    "moodle_gradereport_user_get_grade_items"
+    "moodle_user_find_by_email",
+    "moodle_user_find_by_id",
+    "moodle_user_find_by_username",
+    "moodle_user_update_name",
+    "moodle_user_update_email",
+    "moodle_user_update_username",
+    "moodle_user_update_password",
+    "moodle_user_suspend",
+    "moodle_user_unsuspend",
+    "moodle_user_request_password_reset_by_email",
+    "moodle_user_request_password_reset_by_username",
+    "moodle_user_enrol",
+    "moodle_user_enrol_as_student",
+    "moodle_course_get_by_id",
+    "moodle_course_find_by_shortname",
+    "moodle_course_find_by_idnumber",
+    "moodle_courses_find_by_category",
+    "moodle_course_get_contents"
   ],
   "requiresConfiguration": [
     "moodle.instances"

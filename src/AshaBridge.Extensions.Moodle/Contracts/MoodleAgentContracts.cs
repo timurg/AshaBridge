@@ -122,8 +122,10 @@ public sealed record MoodleUserEnrolAsStudentRequest(long UserId, long CourseId)
 [RequiresPermission("moodle.course.read")]
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
-[McpDescription("Get one Moodle course by id.")]
-public sealed record MoodleCourseGetByIdRequest(long Id) : IMcpRequest<MoodleRawResponse>;
+[McpDescription("Get one Moodle course by its internal numeric course id.")]
+public sealed record MoodleCourseGetByIdRequest(
+    [property: McpParameterDescription("Internal numeric Moodle course id, not the course idnumber field.")]
+    long Id) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_course_find_by_shortname")]
 [ContractVersion("1.0.0")]
@@ -138,8 +140,10 @@ public sealed record MoodleCourseFindByShortNameRequest(string ShortName) : IMcp
 [RequiresPermission("moodle.course.read")]
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
-[McpDescription("Find Moodle courses by idnumber.")]
-public sealed record MoodleCourseFindByIdNumberRequest(string IdNumber) : IMcpRequest<MoodleRawResponse>;
+[McpDescription("Find Moodle courses by the optional course idnumber field, not by internal course id.")]
+public sealed record MoodleCourseFindByIdNumberRequest(
+    [property: McpParameterDescription("Value stored in the Moodle course idnumber field.")]
+    string IdNumber) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_courses_find_by_category")]
 [ContractVersion("1.0.0")]

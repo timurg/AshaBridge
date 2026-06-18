@@ -87,41 +87,6 @@ public sealed class AshaBridgeMcpToolSurface(
     public Task<BitrixCrmTimelineCommentAddResponse> BitrixCrmTimelineCommentAdd(string entityType, long entityId, string comment, CancellationToken ct) =>
         InvokeAsync<BitrixCrmTimelineCommentAddRequest, BitrixCrmTimelineCommentAddResponse>("bitrix_crm_timeline_comment_add", new BitrixCrmTimelineCommentAddRequest(entityType, entityId, comment), ct);
 
-    public Task<MoodleGetUsersByFieldResponse> MoodleGetUsersByField(MoodleUserLookupField field, IReadOnlyList<string> values, CancellationToken ct) =>
-        InvokeAsync<MoodleGetUsersByFieldRequest, MoodleGetUsersByFieldResponse>("moodle_core_user_get_users_by_field", new MoodleGetUsersByFieldRequest(field, values), ct);
-
-    [McpServerTool(Name = "moodle_core_user_create_user", ReadOnly = false, Destructive = false, Idempotent = true)]
-    public Task<MoodleCreateUserResponse> MoodleCreateUser(string email, string password, string firstName, string lastName, CancellationToken ct) =>
-        InvokeAsync<MoodleCreateUserRequest, MoodleCreateUserResponse>("moodle_core_user_create_user", new MoodleCreateUserRequest(email, password, firstName, lastName), ct);
-
-    public Task<MoodleUpdateUserResponse> MoodleUpdateUser(
-        long id,
-        string username = "",
-        string auth = "",
-        bool suspended = false,
-        bool updateSuspended = false,
-        string password = "",
-        string firstName = "",
-        string lastName = "",
-        string email = "",
-        int mailDisplay = -1,
-        string city = "",
-        string country = "",
-        string timezone = "",
-        string description = "",
-        string idNumber = "",
-        string institution = "",
-        string department = "",
-        string phone1 = "",
-        string phone2 = "",
-        string address = "",
-        string lang = "",
-        CancellationToken ct = default) =>
-        InvokeAsync<MoodleUpdateUserRequest, MoodleUpdateUserResponse>(
-            "moodle_core_user_update_user",
-            new MoodleUpdateUserRequest(id, EmptyToNull(username), EmptyToNull(auth), updateSuspended ? suspended : null, EmptyToNull(password), EmptyToNull(firstName), EmptyToNull(lastName), EmptyToNull(email), mailDisplay >= 0 ? mailDisplay : null, EmptyToNull(city), EmptyToNull(country), EmptyToNull(timezone), EmptyToNull(description), EmptyToNull(idNumber), EmptyToNull(institution), EmptyToNull(department), EmptyToNull(phone1), EmptyToNull(phone2), EmptyToNull(address), EmptyToNull(lang)),
-            ct);
-
     [McpServerTool(Name = "moodle_user_update_name", ReadOnly = false, Destructive = false, Idempotent = true)]
     public Task<MoodleUpdateUserResponse> MoodleUserUpdateName(long id, string firstName, string lastName, CancellationToken ct) =>
         InvokeAsync<MoodleUserUpdateNameRequest, MoodleUpdateUserResponse>("moodle_user_update_name", new MoodleUserUpdateNameRequest(id, firstName, lastName), ct);
@@ -145,21 +110,6 @@ public sealed class AshaBridgeMcpToolSurface(
     [McpServerTool(Name = "moodle_user_unsuspend", ReadOnly = false, Destructive = false, Idempotent = true)]
     public Task<MoodleUpdateUserResponse> MoodleUserUnsuspend(long id, CancellationToken ct) =>
         InvokeAsync<MoodleUserUnsuspendRequest, MoodleUpdateUserResponse>("moodle_user_unsuspend", new MoodleUserUnsuspendRequest(id), ct);
-
-    public Task<MoodleGetUserResponse> MoodleGetUser(string key, string value, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            throw new ArgumentException("The 'key' argument is required.", nameof(key));
-        }
-
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new ArgumentException("The 'value' argument is required.", nameof(value));
-        }
-
-        return InvokeAsync<MoodleGetUserRequest, MoodleGetUserResponse>("moodle_core_user_get_user", new MoodleGetUserRequest(key, value), ct);
-    }
 
     [McpServerTool(Name = "moodle_user_find_by_email", ReadOnly = true)]
     public Task<MoodleFindUserResponse> MoodleFindUserByEmail(string email = "", string query = "", CancellationToken ct = default)
@@ -190,9 +140,6 @@ public sealed class AshaBridgeMcpToolSurface(
             : InvokeAsync<MoodleFindUserByUsernameRequest, MoodleFindUserResponse>("moodle_user_find_by_username", new MoodleFindUserByUsernameRequest(lookup), ct);
     }
 
-    public Task<MoodleRawResponse> MoodleRequestPasswordReset(string username = "", string email = "", CancellationToken ct = default) =>
-        InvokeAsync<MoodleRequestPasswordResetRequest, MoodleRawResponse>("moodle_core_auth_request_password_reset", new MoodleRequestPasswordResetRequest(EmptyToNull(username), EmptyToNull(email)), ct);
-
     [McpServerTool(Name = "moodle_user_request_password_reset_by_email", ReadOnly = false, Destructive = false)]
     public Task<MoodleRawResponse> MoodleRequestPasswordResetByEmail(string email, CancellationToken ct) =>
         InvokeAsync<MoodleRequestPasswordResetByEmailRequest, MoodleRawResponse>("moodle_user_request_password_reset_by_email", new MoodleRequestPasswordResetByEmailRequest(email), ct);
@@ -201,14 +148,6 @@ public sealed class AshaBridgeMcpToolSurface(
     public Task<MoodleRawResponse> MoodleRequestPasswordResetByUsername(string username, CancellationToken ct) =>
         InvokeAsync<MoodleRequestPasswordResetByUsernameRequest, MoodleRawResponse>("moodle_user_request_password_reset_by_username", new MoodleRequestPasswordResetByUsernameRequest(username), ct);
 
-    [McpServerTool(Name = "moodle_core_enrol_get_users_courses", ReadOnly = true)]
-    public Task<MoodleGetUsersCoursesResponse> MoodleGetUsersCourses(long userId, CancellationToken ct) =>
-        InvokeAsync<MoodleGetUsersCoursesRequest, MoodleGetUsersCoursesResponse>("moodle_core_enrol_get_users_courses", new MoodleGetUsersCoursesRequest(userId), ct);
-
-    [McpServerTool(Name = "moodle_enrol_manual_enrol_user", ReadOnly = false, Destructive = false, Idempotent = true)]
-    public Task<MoodleRawResponse> MoodleManualEnrolUser(long roleId, long userId, long courseId, long timeStart = 0, long timeEnd = 0, int suspend = -1, CancellationToken ct = default) =>
-        InvokeAsync<MoodleManualEnrolUserRequest, MoodleRawResponse>("moodle_enrol_manual_enrol_user", new MoodleManualEnrolUserRequest(roleId, userId, courseId, PositiveToNullable(timeStart), PositiveToNullable(timeEnd), suspend >= 0 ? suspend : null), ct);
-
     [McpServerTool(Name = "moodle_user_enrol", ReadOnly = false, Destructive = false, Idempotent = true)]
     public Task<MoodleRawResponse> MoodleUserEnrol(long roleId, long userId, long courseId, CancellationToken ct) =>
         InvokeAsync<MoodleUserEnrolRequest, MoodleRawResponse>("moodle_user_enrol", new MoodleUserEnrolRequest(roleId, userId, courseId), ct);
@@ -216,31 +155,6 @@ public sealed class AshaBridgeMcpToolSurface(
     [McpServerTool(Name = "moodle_user_enrol_as_student", ReadOnly = false, Destructive = false, Idempotent = true)]
     public Task<MoodleRawResponse> MoodleUserEnrolAsStudent(long userId, long courseId, CancellationToken ct) =>
         InvokeAsync<MoodleUserEnrolAsStudentRequest, MoodleRawResponse>("moodle_user_enrol_as_student", new MoodleUserEnrolAsStudentRequest(userId, courseId), ct);
-
-    [McpServerTool(Name = "moodle_core_completion_get_activities_completion_status", ReadOnly = true)]
-    public Task<MoodleGetActivitiesCompletionStatusResponse> MoodleGetActivitiesCompletionStatus(long courseId, long userId, CancellationToken ct) =>
-        InvokeAsync<MoodleGetActivitiesCompletionStatusRequest, MoodleGetActivitiesCompletionStatusResponse>("moodle_core_completion_get_activities_completion_status", new MoodleGetActivitiesCompletionStatusRequest(courseId, userId), ct);
-
-    [McpServerTool(Name = "moodle_core_completion_get_course_completion_status", ReadOnly = true)]
-    public Task<MoodleRawResponse> MoodleGetCourseCompletionStatus(long courseId, long userId, CancellationToken ct) =>
-        InvokeAsync<MoodleGetCourseCompletionStatusRequest, MoodleRawResponse>("moodle_core_completion_get_course_completion_status", new MoodleGetCourseCompletionStatusRequest(courseId, userId), ct);
-
-    [McpServerTool(Name = "moodle_core_competency_list_user_plans", ReadOnly = true)]
-    public Task<MoodleRawResponse> MoodleListUserPlans(long userId, CancellationToken ct) =>
-        InvokeAsync<MoodleListUserPlansRequest, MoodleRawResponse>("moodle_core_competency_list_user_plans", new MoodleListUserPlansRequest(userId), ct);
-
-    [McpServerTool(Name = "moodle_gradereport_user_get_grade_items", ReadOnly = true)]
-    public Task<MoodleGetGradeItemsResponse> MoodleGetGradeItems(long courseId, long userId, CancellationToken ct) =>
-        InvokeAsync<MoodleGetGradeItemsRequest, MoodleGetGradeItemsResponse>("moodle_gradereport_user_get_grade_items", new MoodleGetGradeItemsRequest(courseId, userId), ct);
-
-    public Task<MoodleRawResponse> MoodleGetCourses(string idsCsv = "", CancellationToken ct = default) =>
-        InvokeAsync<MoodleGetCoursesRequest, MoodleRawResponse>("moodle_core_course_get_courses", new MoodleGetCoursesRequest(ParseLongCsv(idsCsv)), ct);
-
-    public Task<MoodleRawResponse> MoodleGetCoursesByField(string field = "", string value = "", CancellationToken ct = default) =>
-        InvokeAsync<MoodleGetCoursesByFieldRequest, MoodleRawResponse>("moodle_core_course_get_courses_by_field", new MoodleGetCoursesByFieldRequest(EmptyToNull(field), EmptyToNull(value)), ct);
-
-    public Task<MoodleRawResponse> MoodleGetCourseContents(long courseId, string optionsJson = "", CancellationToken ct = default) =>
-        InvokeAsync<MoodleGetCourseContentsRequest, MoodleRawResponse>("moodle_core_course_get_contents", new MoodleGetCourseContentsRequest(courseId, ParseMoodleOptions(optionsJson)), ct);
 
     [McpServerTool(Name = "moodle_course_get_by_id", ReadOnly = true)]
     public Task<MoodleRawResponse> MoodleCourseGetById(long id, CancellationToken ct) =>
@@ -369,21 +283,6 @@ public sealed class AshaBridgeMcpToolSurface(
         return text.Length <= 160 ? text : string.Concat(text.AsSpan(0, 160), "...");
     }
 
-    private static long? PositiveToNullable(long value) =>
-        value > 0 ? value : null;
-
-    private static IReadOnlyList<long>? ParseLongCsv(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(part => long.Parse(part, System.Globalization.CultureInfo.InvariantCulture))
-            .ToArray();
-    }
-
     private static JsonObject? ParseOptionalJsonObject(string value, string parameterName) =>
         string.IsNullOrWhiteSpace(value) ? null : ParseRequiredJsonObject(value, parameterName);
 
@@ -398,19 +297,4 @@ public sealed class AshaBridgeMcpToolSurface(
             ?? throw new ArgumentException("The value must be a JSON object.", parameterName);
     }
 
-    private static IReadOnlyList<MoodleNameValueOption>? ParseMoodleOptions(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        var array = JsonNode.Parse(value) as JsonArray
-            ?? throw new ArgumentException("The optionsJson value must be a JSON array.", nameof(value));
-
-        return array.Select(item => new MoodleNameValueOption(
-                item?["name"]?.GetValue<string>() ?? throw new ArgumentException("Each option must include a name.", nameof(value)),
-                item?["value"]?.GetValue<string>() ?? throw new ArgumentException("Each option must include a value.", nameof(value))))
-            .ToArray();
-    }
 }

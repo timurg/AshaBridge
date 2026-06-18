@@ -100,15 +100,12 @@ public sealed class MoodleUserEnrolAsStudentHandler(MoodleWebServiceClient clien
 public sealed class MoodleCourseGetByIdHandler(MoodleWebServiceClient client)
     : IMcpMethodHandler<MoodleCourseGetByIdRequest, MoodleRawResponse>
 {
-    public async Task<MoodleRawResponse> HandleAsync(MoodleCourseGetByIdRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct)
-    {
-        var result = await client.CallAsync("core_course_get_courses", new JsonObject
-        {
-            ["options"] = new JsonObject { ["ids"] = new JsonArray(request.Id) }
-        }, ct).ConfigureAwait(false);
-
-        return new MoodleRawResponse(result.DeepClone());
-    }
+    public Task<MoodleRawResponse> HandleAsync(MoodleCourseGetByIdRequest request, IAshaBridgeExecutionContext execution, CancellationToken ct) =>
+        MoodleAgentHandlerHelpers.FindCoursesByFieldAsync(
+            client,
+            "id",
+            request.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ct);
 }
 
 public sealed class MoodleCourseFindByShortNameHandler(MoodleWebServiceClient client)

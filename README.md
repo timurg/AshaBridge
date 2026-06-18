@@ -200,6 +200,20 @@ application continues logging to stdout/journald with a warning.
 - `GET /internal/ashabridge/extensions` - registered extensions, requires auth.
 - `GET /internal/ashabridge/contracts` - registered contracts, requires auth.
 
+MCP tool responses can be compacted through endpoint query parameters:
+
+```text
+/mcp?compact=true&dropZero=true&maxResponseChars=6000
+```
+
+- `compact=true` removes nulls, blank strings, and empty arrays/objects.
+- `dropZero=true` additionally removes numeric zeros; false values are preserved.
+- `maxResponseChars` limits each text tool result to 256-100000 characters while keeping valid JSON.
+
+When a JSON response exceeds the limit, large optional values are removed and the
+result includes `_ashabridge.truncated=true`. These options are disabled when omitted.
+The character limit applies to each MCP tool result, not to the model's entire prompt.
+
 Bearer token check:
 
 ```powershell

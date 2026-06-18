@@ -9,10 +9,12 @@ using AshaBridge.Core.Runtime;
 using AshaBridge.Extensions.Bitrix24;
 using AshaBridge.Extensions.Moodle;
 using AshaBridge.Persistence.Audit;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 
 namespace AshaBridge.AspNetCore.Extensions;
@@ -79,7 +81,14 @@ public static class AshaBridgeServiceCollectionExtensions
                 filters.AddCallToolFilter(next => async (request, ct) =>
                 {
                     UnwrapSingleValueObjectArgument(request.Params);
-                    return await next(request, ct).ConfigureAwait(false);
+                    var result = await next(request, ct).ConfigureAwait(false);
+                    var requestServices = request.Services;
+                    McpResponseCompactor.Compact(
+                        result,
+                        requestServices?.GetService<IHttpContextAccessor>()?.HttpContext,
+                        request.Params?.Name,
+                        requestServices?.GetService<ILoggerFactory>());
+                    return result;
                 });
             })
             .WithTools<AshaBridgeMcpToolSurface>();

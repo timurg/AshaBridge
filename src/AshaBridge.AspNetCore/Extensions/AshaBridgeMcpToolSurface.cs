@@ -1,4 +1,7 @@
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using AshaBridge.Core.Runtime;
 using AshaBridge.Extensions.Bitrix24.Contracts;
@@ -202,6 +205,7 @@ public sealed class AshaBridgeMcpToolSurface(
     public Task<MoodleGetUsersCoursesResponse> MoodleGetUsersCourses(long userId, CancellationToken ct) =>
         InvokeAsync<MoodleGetUsersCoursesRequest, MoodleGetUsersCoursesResponse>("moodle_core_enrol_get_users_courses", new MoodleGetUsersCoursesRequest(userId), ct);
 
+    [McpServerTool(Name = "moodle_enrol_manual_enrol_user", ReadOnly = false, Destructive = false, Idempotent = true)]
     public Task<MoodleRawResponse> MoodleManualEnrolUser(long roleId, long userId, long courseId, long timeStart = 0, long timeEnd = 0, int suspend = -1, CancellationToken ct = default) =>
         InvokeAsync<MoodleManualEnrolUserRequest, MoodleRawResponse>("moodle_enrol_manual_enrol_user", new MoodleManualEnrolUserRequest(roleId, userId, courseId, PositiveToNullable(timeStart), PositiveToNullable(timeEnd), suspend >= 0 ? suspend : null), ct);
 
@@ -267,7 +271,7 @@ public sealed class AshaBridgeMcpToolSurface(
             userId: http?.User.Identity?.Name,
             organizationId: http?.User.FindFirst("organization_id")?.Value,
             tenantId: http?.User.FindFirst("tenant_id")?.Value,
-            idempotencyKey: TryGetIdempotencyKey(http),
+            idempotencyKey: GetIdempotencyKey(http, methodName, request),
             permissions: http?.User.FindAll("permission").Select(c => c.Value).ToArray() ?? [],
             services: services,
             requestAborted: http?.RequestAborted ?? ct);
@@ -291,12 +295,17 @@ public sealed class AshaBridgeMcpToolSurface(
 
             if (@event is MethodFailedEvent failed)
             {
-                logger.LogWarning(
-                    "Failed AshaBridge MCP method {MethodName}. CorrelationId={CorrelationId}; ErrorCode={ErrorCode}; ErrorMessage={ErrorMessage}",
+                logger.LogError(
+                    "Failed AshaBridge MCP method {MethodName}. CorrelationId={CorrelationId}; ErrorCode={ErrorCode}; Source={Source}; Operation={Operation}; StatusCode={StatusCode}; Retryable={Retryable}; ErrorMessage={ErrorMessage}; Request={RequestSummary}",
                     methodName,
                     execution.CorrelationId,
                     failed.Error.Code,
-                    failed.Error.Message);
+                    failed.Error.Source,
+                    failed.Error.Operation,
+                    failed.Error.StatusCode,
+                    failed.Error.Retryable,
+                    failed.Error.Message,
+                    SummarizeRequest(request));
                 throw new InvalidOperationException($"{failed.Error.Code}: {failed.Error.Message}");
             }
         }
@@ -304,10 +313,17 @@ public sealed class AshaBridgeMcpToolSurface(
         throw new InvalidOperationException($"MCP method '{methodName}' completed without a response.");
     }
 
-    private static IdempotencyKey? TryGetIdempotencyKey(HttpContext? http)
+    private static IdempotencyKey GetIdempotencyKey<TRequest>(HttpContext? http, string methodName, TRequest request)
     {
         var value = http?.Request.Headers["Idempotency-Key"].FirstOrDefault();
-        return string.IsNullOrWhiteSpace(value) ? null : new IdempotencyKey(value);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return new IdempotencyKey(value);
+        }
+
+        var requestJson = JsonSerializer.Serialize(request);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{methodName}:{requestJson}")));
+        return new IdempotencyKey($"mcp:{methodName}:{hash}");
     }
 
     private static string? EmptyToNull(string value) =>

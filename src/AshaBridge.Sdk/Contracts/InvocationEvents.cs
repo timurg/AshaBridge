@@ -50,4 +50,35 @@ public sealed record AshaBridgeError(
     string Code,
     string Message,
     bool Retryable,
-    string CorrelationId);
+    string CorrelationId,
+    string? Source = null,
+    string? Operation = null,
+    int? StatusCode = null);
+
+public enum ExternalServiceErrorKind
+{
+    Transport,
+    Http,
+    Api,
+    InvalidResponse
+}
+
+public sealed class ExternalServiceException(
+    string service,
+    string operation,
+    ExternalServiceErrorKind kind,
+    string message,
+    bool retryable = false,
+    int? statusCode = null,
+    Exception? innerException = null) : Exception(message, innerException)
+{
+    public string Service { get; } = service;
+
+    public string Operation { get; } = operation;
+
+    public ExternalServiceErrorKind Kind { get; } = kind;
+
+    public bool Retryable { get; } = retryable;
+
+    public int? StatusCode { get; } = statusCode;
+}

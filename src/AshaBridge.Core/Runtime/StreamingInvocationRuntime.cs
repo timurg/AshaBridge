@@ -2,10 +2,13 @@ using System.Runtime.CompilerServices;
 using AshaBridge.Core.Registry;
 using AshaBridge.Sdk.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace AshaBridge.Core.Runtime;
 
-public sealed class StreamingInvocationRuntime(MethodRegistry methods)
+public sealed class StreamingInvocationRuntime(
+    MethodRegistry methods,
+    ILogger<StreamingInvocationRuntime> logger)
 {
     public async IAsyncEnumerable<AshaBridgeInvocationEvent> InvokeAsync(
         string methodName,
@@ -55,10 +58,44 @@ public sealed class StreamingInvocationRuntime(MethodRegistry methods)
         }
         catch (OperationCanceledException)
         {
+            logger.LogWarning(
+                "AshaBridge method {MethodName} was cancelled. CorrelationId={CorrelationId}; RequestType={RequestType}",
+                methodName,
+                execution.CorrelationId,
+                request.GetType().Name);
             failure = Failed(methodName, execution.CorrelationId, "TIMEOUT", "Invocation was cancelled.");
+        }
+        catch (ExternalServiceException ex)
+        {
+            logger.LogError(
+                ex,
+                "External service call failed. MethodName={MethodName}; CorrelationId={CorrelationId}; Source={Source}; Operation={Operation}; ErrorKind={ErrorKind}; StatusCode={StatusCode}; Retryable={Retryable}",
+                methodName,
+                execution.CorrelationId,
+                ex.Service,
+                ex.Operation,
+                ex.Kind,
+                ex.StatusCode,
+                ex.Retryable);
+
+            failure = Failed(
+                methodName,
+                execution.CorrelationId,
+                $"UPSTREAM_{ToErrorCode(ex.Kind)}",
+                ex.Message,
+                ex.Retryable,
+                ex.Service,
+                ex.Operation,
+                ex.StatusCode);
         }
         catch (Exception ex)
         {
+            logger.LogError(
+                ex,
+                "AshaBridge method {MethodName} threw an exception. CorrelationId={CorrelationId}; RequestType={RequestType}",
+                methodName,
+                execution.CorrelationId,
+                request.GetType().Name);
             failure = Failed(methodName, execution.CorrelationId, "UNKNOWN_ERROR", ex.Message);
         }
 
@@ -121,12 +158,29 @@ public sealed class StreamingInvocationRuntime(MethodRegistry methods)
         return completed;
     }
 
-    private static MethodFailedEvent Failed(string methodName, string correlationId, string code, string message) =>
+    private static MethodFailedEvent Failed(
+        string methodName,
+        string correlationId,
+        string code,
+        string message,
+        bool retryable = false,
+        string? source = null,
+        string? operation = null,
+        int? statusCode = null) =>
         new()
         {
             CorrelationId = correlationId,
             MethodName = methodName,
             Timestamp = DateTimeOffset.UtcNow,
-            Error = new AshaBridgeError(code, message, Retryable: false, correlationId)
+            Error = new AshaBridgeError(code, message, retryable, correlationId, source, operation, statusCode)
         };
+
+    private static string ToErrorCode(ExternalServiceErrorKind kind) => kind switch
+    {
+        ExternalServiceErrorKind.Transport => "TRANSPORT_ERROR",
+        ExternalServiceErrorKind.Http => "HTTP_ERROR",
+        ExternalServiceErrorKind.Api => "API_ERROR",
+        ExternalServiceErrorKind.InvalidResponse => "INVALID_RESPONSE",
+        _ => "ERROR"
+    };
 }

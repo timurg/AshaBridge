@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using AshaBridge.Extensions.Bitrix24.Contracts;
 using AshaBridge.Extensions.Bitrix24.Handlers;
 using AshaBridge.Sdk.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AshaBridge.Extensions.Bitrix24;
@@ -74,7 +76,9 @@ public sealed class BitrixInstanceOptions
     public int TimeoutSeconds { get; set; } = 20;
 }
 
-public sealed class BitrixRestClient(HttpClient http)
+public sealed class BitrixRestClient(
+    HttpClient http,
+    ILogger<BitrixRestClient> logger)
 {
     public async Task<JsonObject> CallAsync(string method, JsonObject payload, CancellationToken ct)
     {
@@ -87,14 +91,135 @@ public sealed class BitrixRestClient(HttpClient http)
             };
         }
 
-        using var response = await http.PostAsJsonAsync(method, payload, ct).ConfigureAwait(false);
+        using var response = await PostAsync(method, payload, ct).ConfigureAwait(false);
+        var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            throw new HttpRequestException($"Bitrix24 REST call '{method}' failed with {(int)response.StatusCode} {response.ReasonPhrase}: {body}");
+            logger.LogError(
+                "Bitrix24 REST call {Method} failed with HTTP {StatusCode} {ReasonPhrase}. Payload={Payload}; Response={Response}",
+                method,
+                (int)response.StatusCode,
+                response.ReasonPhrase,
+                RedactPayload(payload),
+                Truncate(body));
+
+            var statusCode = (int)response.StatusCode;
+            throw new ExternalServiceException(
+                "Bitrix24",
+                method,
+                ExternalServiceErrorKind.Http,
+                $"Bitrix24 returned HTTP {statusCode} {response.ReasonPhrase} for '{method}'.",
+                retryable: statusCode is 408 or 429 || statusCode >= 500,
+                statusCode: statusCode);
         }
 
-        return await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken: ct).ConfigureAwait(false) ?? [];
+        JsonObject result;
+        try
+        {
+            result = JsonNode.Parse(body) as JsonObject ?? [];
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(
+                ex,
+                "Bitrix24 REST call {Method} returned invalid JSON. Payload={Payload}; Response={Response}",
+                method,
+                RedactPayload(payload),
+                Truncate(body));
+
+            throw new ExternalServiceException(
+                "Bitrix24",
+                method,
+                ExternalServiceErrorKind.InvalidResponse,
+                $"Bitrix24 returned invalid JSON for '{method}'.",
+                innerException: ex);
+        }
+
+        if (result["error"] is not null)
+        {
+            logger.LogError(
+                "Bitrix24 REST call {Method} returned an error. Payload={Payload}; Response={Response}",
+                method,
+                RedactPayload(payload),
+                Truncate(body));
+
+            var errorCode = result["error"]?.GetValue<string>();
+            var errorMessage = result["error_description"]?.GetValue<string>();
+            var details = string.Join(": ", new[] { errorCode, errorMessage }.Where(value => !string.IsNullOrWhiteSpace(value)));
+            throw new ExternalServiceException(
+                "Bitrix24",
+                method,
+                ExternalServiceErrorKind.Api,
+                string.IsNullOrWhiteSpace(details) ? $"Bitrix24 rejected '{method}'." : details);
+        }
+
+        return result;
     }
 
+    private async Task<HttpResponseMessage> PostAsync(string method, JsonObject payload, CancellationToken ct)
+    {
+        try
+        {
+            return await http.PostAsJsonAsync(method, payload, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(
+                ex,
+                "Bitrix24 REST transport failed. Method={Method}; Payload={Payload}",
+                method,
+                RedactPayload(payload));
+
+            throw new ExternalServiceException(
+                "Bitrix24",
+                method,
+                ExternalServiceErrorKind.Transport,
+                $"Could not reach Bitrix24 for '{method}': {ex.Message}",
+                retryable: true,
+                innerException: ex);
+        }
+    }
+
+    private static string RedactPayload(JsonObject payload)
+    {
+        var clone = payload.DeepClone();
+        RedactNode(clone);
+        return Truncate(clone.ToJsonString());
+    }
+
+    private static void RedactNode(JsonNode? node)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                foreach (var key in obj.Select(property => property.Key).ToArray())
+                {
+                    if (IsSensitiveKey(key))
+                    {
+                        obj[key] = "<redacted>";
+                        continue;
+                    }
+
+                    RedactNode(obj[key]);
+                }
+
+                break;
+            case JsonArray array:
+                foreach (var item in array)
+                {
+                    RedactNode(item);
+                }
+
+                break;
+        }
+    }
+
+    private static bool IsSensitiveKey(string key) =>
+        key.Contains("password", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("token", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("body", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("comment", StringComparison.OrdinalIgnoreCase);
+
+    private static string Truncate(string value) =>
+        value.Length <= 4000 ? value : string.Concat(value.AsSpan(0, 4000), "...");
 }

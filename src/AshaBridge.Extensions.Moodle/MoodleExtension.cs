@@ -5,6 +5,7 @@ using AshaBridge.Extensions.Moodle.Contracts;
 using AshaBridge.Extensions.Moodle.Handlers;
 using AshaBridge.Sdk.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AshaBridge.Extensions.Moodle;
@@ -86,7 +87,10 @@ public sealed class MoodleInstanceOptions
     public int TimeoutSeconds { get; set; } = 20;
 }
 
-public sealed class MoodleWebServiceClient(HttpClient http, IOptions<MoodleExtensionOptions> options)
+public sealed class MoodleWebServiceClient(
+    HttpClient http,
+    IOptions<MoodleExtensionOptions> options,
+    ILogger<MoodleWebServiceClient> logger)
 {
     public async Task<JsonObject> CallAsync(string function, JsonObject payload, CancellationToken ct)
     {
@@ -114,13 +118,67 @@ public sealed class MoodleWebServiceClient(HttpClient http, IOptions<MoodleExten
 
         AddFormFields(form, payload);
 
-        using var response = await http.PostAsync("webservice/rest/server.php", new FormUrlEncodedContent(form), ct).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+        using var content = new FormUrlEncodedContent(form);
+        using var response = await PostAsync(function, payload, content, ct).ConfigureAwait(false);
         var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-        var node = JsonNode.Parse(text);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError(
+                "Moodle REST call {Function} failed with HTTP {StatusCode} {ReasonPhrase}. Payload={Payload}; Response={Response}",
+                function,
+                (int)response.StatusCode,
+                response.ReasonPhrase,
+                RedactPayload(payload),
+                Truncate(text));
+
+            var statusCode = (int)response.StatusCode;
+            throw new ExternalServiceException(
+                "Moodle",
+                function,
+                ExternalServiceErrorKind.Http,
+                $"Moodle returned HTTP {statusCode} {response.ReasonPhrase} for '{function}'.",
+                retryable: statusCode is 408 or 429 || statusCode >= 500,
+                statusCode: statusCode);
+        }
+
+        JsonNode? node;
+        try
+        {
+            node = JsonNode.Parse(text);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(
+                ex,
+                "Moodle REST call {Function} returned invalid JSON. Payload={Payload}; Response={Response}",
+                function,
+                RedactPayload(payload),
+                Truncate(text));
+
+            throw new ExternalServiceException(
+                "Moodle",
+                function,
+                ExternalServiceErrorKind.InvalidResponse,
+                $"Moodle returned invalid JSON for '{function}'.",
+                innerException: ex);
+        }
+
         if (node is JsonObject obj && obj["exception"] is not null)
         {
-            throw new InvalidOperationException(text);
+            logger.LogError(
+                "Moodle REST call {Function} returned an exception. Payload={Payload}; Response={Response}",
+                function,
+                RedactPayload(payload),
+                Truncate(text));
+
+            var errorCode = obj["errorcode"]?.GetValue<string>();
+            var errorMessage = obj["message"]?.GetValue<string>();
+            var details = string.Join(": ", new[] { errorCode, errorMessage }.Where(value => !string.IsNullOrWhiteSpace(value)));
+            throw new ExternalServiceException(
+                "Moodle",
+                function,
+                ExternalServiceErrorKind.Api,
+                string.IsNullOrWhiteSpace(details) ? $"Moodle rejected '{function}'." : details);
         }
 
         return node switch
@@ -136,6 +194,34 @@ public sealed class MoodleWebServiceClient(HttpClient http, IOptions<MoodleExten
         foreach (var (key, value) in payload)
         {
             AddFormField(form, key, value);
+        }
+    }
+
+    private async Task<HttpResponseMessage> PostAsync(
+        string function,
+        JsonObject payload,
+        HttpContent content,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await http.PostAsync("webservice/rest/server.php", content, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(
+                ex,
+                "Moodle REST transport failed. Function={Function}; Payload={Payload}",
+                function,
+                RedactPayload(payload));
+
+            throw new ExternalServiceException(
+                "Moodle",
+                function,
+                ExternalServiceErrorKind.Transport,
+                $"Could not reach Moodle for '{function}': {ex.Message}",
+                retryable: true,
+                innerException: ex);
         }
     }
 
@@ -164,4 +250,47 @@ public sealed class MoodleWebServiceClient(HttpClient http, IOptions<MoodleExten
                 return;
         }
     }
+
+    private static string RedactPayload(JsonObject payload)
+    {
+        var clone = payload.DeepClone();
+        RedactNode(clone);
+        return Truncate(clone.ToJsonString());
+    }
+
+    private static void RedactNode(JsonNode? node)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                foreach (var key in obj.Select(property => property.Key).ToArray())
+                {
+                    if (IsSensitiveKey(key))
+                    {
+                        obj[key] = "<redacted>";
+                        continue;
+                    }
+
+                    RedactNode(obj[key]);
+                }
+
+                break;
+            case JsonArray array:
+                foreach (var item in array)
+                {
+                    RedactNode(item);
+                }
+
+                break;
+        }
+    }
+
+    private static bool IsSensitiveKey(string key) =>
+        key.Contains("password", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("token", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("body", StringComparison.OrdinalIgnoreCase)
+        || key.Contains("comment", StringComparison.OrdinalIgnoreCase);
+
+    private static string Truncate(string value) =>
+        value.Length <= 4000 ? value : string.Concat(value.AsSpan(0, 4000), "...");
 }

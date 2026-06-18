@@ -11,7 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="extension.manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+    <None Update="extension.manifest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>extensions/bitrix24/extension.manifest.json</TargetPath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

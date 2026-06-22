@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using AshaBridge.Extensions.Bitrix24.Contracts;
 using AshaBridge.Extensions.Bitrix24.Handlers;
 using AshaBridge.Sdk.Contracts;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,6 +20,11 @@ public sealed class Bitrix24Extension : IAshaBridgeExtension
 
     public void Configure(IAshaBridgeExtensionBuilder builder)
     {
+        builder.Services
+            .AddOptions<BitrixExtensionOptions>()
+            .Bind(builder.Configuration.GetSection("bitrix"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         builder.Services.AddHttpClient<BitrixRestClient>((services, http) =>
         {
             var options = services.GetRequiredService<IOptions<BitrixExtensionOptions>>().Value;
@@ -31,24 +37,24 @@ public sealed class Bitrix24Extension : IAshaBridgeExtension
             http.Timeout = TimeSpan.FromSeconds(instance.TimeoutSeconds);
             http.BaseAddress = new Uri(EnsureTrailingSlash(instance.WebhookUrl ?? instance.BaseUrl));
         });
-        builder.AddMethod<BitrixCrmItemGetRequest, BitrixCrmItemGetResponse, BitrixCrmItemGetHandler>();
+        builder.AddToolMethod<BitrixCrmItemGetRequest, BitrixCrmItemGetResponse, BitrixCrmItemGetHandler>();
         builder.AddMethod<BitrixCrmItemListRequest, BitrixCrmItemListResponse, BitrixCrmItemListHandler>();
-        builder.AddMethod<BitrixCrmDynamicItemsListAllRequest, BitrixCrmItemListResponse, BitrixCrmDynamicItemsListAllHandler>();
+        builder.AddToolMethod<BitrixCrmDynamicItemsListAllRequest, BitrixCrmItemListResponse, BitrixCrmDynamicItemsListAllHandler>();
         builder.AddMethod<BitrixCrmItemUpdateRequest, BitrixCrmItemUpdateResponse, BitrixCrmItemUpdateHandler>();
-        builder.AddMethod<BitrixCrmDealGetRequest, BitrixCrmDealGetResponse, BitrixCrmDealGetHandler>();
+        builder.AddToolMethod<BitrixCrmDealGetRequest, BitrixCrmDealGetResponse, BitrixCrmDealGetHandler>();
         builder.AddMethod<BitrixCrmDealListRequest, BitrixCrmDealListResponse, BitrixCrmDealListHandler>();
-        builder.AddMethod<BitrixCrmDealsListAllRequest, BitrixCrmDealListResponse, BitrixCrmDealsListAllHandler>();
-        builder.AddMethod<BitrixCrmDealsFindByContactIdRequest, BitrixCrmDealListResponse, BitrixCrmDealsFindByContactIdHandler>();
-        builder.AddMethod<BitrixCrmContactGetRequest, BitrixCrmContactGetResponse, BitrixCrmContactGetHandler>();
+        builder.AddToolMethod<BitrixCrmDealsListAllRequest, BitrixCrmDealListResponse, BitrixCrmDealsListAllHandler>();
+        builder.AddToolMethod<BitrixCrmDealsFindByContactIdRequest, BitrixCrmDealListResponse, BitrixCrmDealsFindByContactIdHandler>();
+        builder.AddToolMethod<BitrixCrmContactGetRequest, BitrixCrmContactGetResponse, BitrixCrmContactGetHandler>();
         builder.AddMethod<BitrixCrmContactListRequest, BitrixCrmContactListResponse, BitrixCrmContactListHandler>();
-        builder.AddMethod<BitrixCrmContactsListAllRequest, BitrixCrmContactListResponse, BitrixCrmContactsListAllHandler>();
-        builder.AddMethod<BitrixCrmContactsFindByEmailRequest, BitrixCrmContactListResponse, BitrixCrmContactsFindByEmailHandler>();
+        builder.AddToolMethod<BitrixCrmContactsListAllRequest, BitrixCrmContactListResponse, BitrixCrmContactsListAllHandler>();
+        builder.AddToolMethod<BitrixCrmContactsFindByEmailRequest, BitrixCrmContactListResponse, BitrixCrmContactsFindByEmailHandler>();
         builder.AddMethod<BitrixCrmContactUpdateRequest, BitrixCrmContactUpdateResponse, BitrixCrmContactUpdateHandler>();
-        builder.AddMethod<BitrixCrmContactUpdateNameRequest, BitrixCrmContactUpdateResponse, BitrixCrmContactUpdateNameHandler>();
-        builder.AddMethod<BitrixCrmContactUpdateEmailRequest, BitrixCrmContactUpdateResponse, BitrixCrmContactUpdateEmailHandler>();
-        builder.AddMethod<BitrixCrmDealTrainingDirectionUpdateRequest, BitrixCrmDealTrainingDirectionUpdateResponse, BitrixCrmDealTrainingDirectionUpdateHandler>();
-        builder.AddMethod<BitrixCrmDealPartyEmailAddRequest, BitrixCrmDealPartyEmailAddResponse, BitrixCrmDealPartyEmailAddHandler>();
-        builder.AddMethod<BitrixCrmTimelineCommentAddRequest, BitrixCrmTimelineCommentAddResponse, BitrixCrmTimelineCommentAddHandler>();
+        builder.AddToolMethod<BitrixCrmContactUpdateNameRequest, BitrixCrmContactUpdateResponse, BitrixCrmContactUpdateNameHandler>();
+        builder.AddToolMethod<BitrixCrmContactUpdateEmailRequest, BitrixCrmContactUpdateResponse, BitrixCrmContactUpdateEmailHandler>();
+        builder.AddToolMethod<BitrixCrmDealTrainingDirectionUpdateRequest, BitrixCrmDealTrainingDirectionUpdateResponse, BitrixCrmDealTrainingDirectionUpdateHandler>();
+        builder.AddToolMethod<BitrixCrmDealPartyEmailAddRequest, BitrixCrmDealPartyEmailAddResponse, BitrixCrmDealPartyEmailAddHandler>();
+        builder.AddToolMethod<BitrixCrmTimelineCommentAddRequest, BitrixCrmTimelineCommentAddResponse, BitrixCrmTimelineCommentAddHandler>();
     }
 
     private static string EnsureTrailingSlash(string value) =>

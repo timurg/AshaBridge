@@ -1,4 +1,5 @@
 using AshaBridge.AspNetCore.Extensions;
+using AshaBridge.PluginHost.Manifests;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -32,7 +33,27 @@ try
         }
     });
 
-    builder.Services.AddAshaBridge(builder.Configuration);
+    var enabledExtensionIds = builder.Configuration
+        .GetSection("ashabridge:extensions:enabled")
+        .Get<string[]>() ?? [];
+    var configuredExtensionsPath = builder.Configuration["ashabridge:extensions:path"] ?? "./extensions";
+    var extensionsPath = Path.GetFullPath(configuredExtensionsPath, builder.Environment.ContentRootPath);
+    if (!Directory.Exists(extensionsPath))
+    {
+        extensionsPath = Path.GetFullPath(configuredExtensionsPath, AppContext.BaseDirectory);
+    }
+    var pluginLoader = new PluginFolderLoader(new ExtensionManifestReader());
+    var plugins = await pluginLoader.LoadAsync(extensionsPath, enabledExtensionIds, CancellationToken.None);
+    var missingExtensionIds = enabledExtensionIds
+        .Except(plugins.Select(plugin => plugin.Extension.Id), StringComparer.Ordinal)
+        .ToArray();
+    if (missingExtensionIds.Length > 0)
+    {
+        throw new InvalidOperationException(
+            $"Enabled extensions were not loaded from '{extensionsPath}': {string.Join(", ", missingExtensionIds)}");
+    }
+
+    builder.Services.AddAshaBridge(builder.Configuration, plugins.Select(plugin => plugin.Extension));
 
     var app = builder.Build();
 

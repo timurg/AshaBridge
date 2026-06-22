@@ -3,6 +3,7 @@
   "name": "AshaBridge Bitrix24 Extension",
   "version": "1.0.0",
   "sdkVersion": ">=1.0.0 <2.0.0",
+  "assembly": "AshaBridge.Extensions.Bitrix24.dll",
   "providesMethods": [
     "bitrix_crm_item_get",
     "bitrix_crm_item_list",

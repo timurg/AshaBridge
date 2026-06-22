@@ -2,6 +2,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AshaBridge.AspNetCore\AshaBridge.AspNetCore.csproj" />
+    <ProjectReference Include="..\AshaBridge.Extensions.Bitrix24\AshaBridge.Extensions.Bitrix24.csproj" />
+    <ProjectReference Include="..\AshaBridge.Extensions.Moodle\AshaBridge.Extensions.Moodle.csproj" />
+    <ProjectReference Include="..\AshaBridge.PluginHost\AshaBridge.PluginHost.csproj" />
   </ItemGroup>
 
   <ItemGroup>

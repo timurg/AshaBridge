@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AshaBridge.Sdk.Contracts;
@@ -38,7 +39,13 @@ public interface IAshaBridgeExtensionBuilder
 {
     IServiceCollection Services { get; }
 
+    IConfiguration Configuration { get; }
+
     void AddMethod<TRequest, TResponse, THandler>()
+        where TRequest : IMcpRequest<TResponse>
+        where THandler : class, IMcpMethodHandler<TRequest, TResponse>;
+
+    void AddToolMethod<TRequest, TResponse, THandler>()
         where TRequest : IMcpRequest<TResponse>
         where THandler : class, IMcpMethodHandler<TRequest, TResponse>;
 

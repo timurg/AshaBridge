@@ -29,13 +29,14 @@ public sealed record MoodleUser(long Id, string? Username, string? Email, string
 
 public sealed record MoodleGetUsersByFieldResponse(IReadOnlyList<MoodleUser> Users);
 
-[McpMethod("moodle_core_user_create_user")]
+[McpMethod("moodle_user_create")]
 [ContractVersion("1.0.0")]
 [RequiresPermission("moodle.user.write")]
 [OperationRisk(OperationRisk.WriteMedium)]
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Create one Moodle user. Email is always used as both username and email.")]
+[McpToolDescription("ru", "Создать учетную запись пользователя Moodle. Адрес электронной почты используется также как логин.")]
 public sealed record MoodleCreateUserRequest(
     [property: McpParameterDescription("Moodle user email address. This is also used as username.")]
     string Email,

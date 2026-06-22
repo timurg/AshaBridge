@@ -53,6 +53,14 @@ public sealed class McpDescriptionAttribute(string description) : Attribute
     public string Description { get; } = description;
 }
 
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+public sealed class McpToolDescriptionAttribute(string locale, string description) : Attribute
+{
+    public string Locale { get; } = locale;
+
+    public string Description { get; } = description;
+}
+
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter, Inherited = false)]
 public sealed class McpParameterDescriptionAttribute(string description) : Attribute
 {

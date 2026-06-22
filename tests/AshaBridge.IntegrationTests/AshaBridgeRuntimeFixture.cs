@@ -1,5 +1,7 @@
 using AshaBridge.AspNetCore.Extensions;
 using AshaBridge.Core.Runtime;
+using AshaBridge.Extensions.Bitrix24;
+using AshaBridge.Extensions.Moodle;
 using AshaBridge.Sdk.Attributes;
 using AshaBridge.Sdk.Contracts;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +24,7 @@ public sealed class AshaBridgeRuntimeFixture : IDisposable
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton<IConfiguration>(configuration);
-        serviceCollection.AddAshaBridge(configuration);
+        serviceCollection.AddAshaBridge(configuration, [new Bitrix24Extension(), new MoodleExtension()]);
 
         services = serviceCollection.BuildServiceProvider(validateScopes: true);
         runtime = services.GetRequiredService<StreamingInvocationRuntime>();

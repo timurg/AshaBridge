@@ -10,6 +10,7 @@ namespace AshaBridge.Extensions.Bitrix24.Contracts;
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("Get Bitrix24 CRM dynamic item by entity type id and item id.")]
+[McpToolDescription("ru", "Получить элемент смарт-процесса Bitrix24 по идентификатору типа сущности и идентификатору элемента.")]
 public sealed record BitrixCrmItemGetRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM dynamic entity type id.")]
@@ -43,6 +44,7 @@ public sealed record BitrixCrmItemListResponse(JsonArray Items);
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("List all Bitrix24 CRM dynamic items for an entity type.")]
+[McpToolDescription("ru", "Получить все элементы указанного смарт-процесса Bitrix24.")]
 public sealed record BitrixCrmDynamicItemsListAllRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM dynamic entity type id.")]
@@ -76,6 +78,7 @@ public sealed record BitrixCrmItemUpdateResponse(bool Success);
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("Get Bitrix24 CRM deal by id.")]
+[McpToolDescription("ru", "Получить сделку Bitrix24 по ее идентификатору.")]
 public sealed record BitrixCrmDealGetRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM deal id.")]
@@ -101,6 +104,7 @@ public sealed record BitrixCrmDealListResponse(JsonArray Deals);
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("List all Bitrix24 CRM deals.")]
+[McpToolDescription("ru", "Получить список всех сделок Bitrix24.")]
 public sealed record BitrixCrmDealsListAllRequest() : IMcpRequest<BitrixCrmDealListResponse>;
 
 [McpMethod("bitrix_crm_deals_find_by_contact_id")]
@@ -109,6 +113,7 @@ public sealed record BitrixCrmDealsListAllRequest() : IMcpRequest<BitrixCrmDealL
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("Find Bitrix24 CRM deals by contact id.")]
+[McpToolDescription("ru", "Найти сделки Bitrix24, связанные с указанным контактом.")]
 public sealed record BitrixCrmDealsFindByContactIdRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM contact id.")]
@@ -120,6 +125,7 @@ public sealed record BitrixCrmDealsFindByContactIdRequest(
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("Get Bitrix24 CRM contact by id.")]
+[McpToolDescription("ru", "Получить контакт Bitrix24 по его идентификатору.")]
 public sealed record BitrixCrmContactGetRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM contact id.")]
@@ -145,6 +151,7 @@ public sealed record BitrixCrmContactListResponse(JsonArray Contacts);
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("List all Bitrix24 CRM contacts.")]
+[McpToolDescription("ru", "Получить список всех контактов Bitrix24.")]
 public sealed record BitrixCrmContactsListAllRequest() : IMcpRequest<BitrixCrmContactListResponse>;
 
 [McpMethod("bitrix_crm_contacts_find_by_email")]
@@ -153,6 +160,7 @@ public sealed record BitrixCrmContactsListAllRequest() : IMcpRequest<BitrixCrmCo
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 60, Scope = CacheScope.Organization)]
 [McpDescription("Find Bitrix24 CRM contacts by email.")]
+[McpToolDescription("ru", "Найти контакты Bitrix24 по адресу электронной почты.")]
 public sealed record BitrixCrmContactsFindByEmailRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Contact email address.")]
@@ -193,6 +201,7 @@ public sealed record BitrixCrmContactUpdateResponse(bool Success, string Message
 [DoNotCache]
 [InvalidatesCache("bitrix:crm.contact:{Id}")]
 [McpDescription("Update Bitrix24 CRM contact name fields.")]
+[McpToolDescription("ru", "Изменить имя, фамилию и отчество контакта Bitrix24.")]
 public sealed record BitrixCrmContactUpdateNameRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM contact id to update.")]
@@ -215,6 +224,7 @@ public sealed record BitrixCrmContactUpdateNameRequest(
 [DoNotCache]
 [InvalidatesCache("bitrix:crm.contact:{Id}")]
 [McpDescription("Update Bitrix24 CRM contact email.")]
+[McpToolDescription("ru", "Изменить адрес электронной почты контакта Bitrix24.")]
 public sealed record BitrixCrmContactUpdateEmailRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM contact id to update.")]
@@ -231,6 +241,7 @@ public sealed record BitrixCrmContactUpdateEmailRequest(
 [DoNotCache]
 [InvalidatesCache("bitrix:crm.deal:{Id}")]
 [McpDescription("Update Bitrix24 CRM deal training direction field UF_CRM_6283BEE95507A.")]
+[McpToolDescription("ru", "Изменить направление обучения в сделке Bitrix24.")]
 public sealed record BitrixCrmDealTrainingDirectionUpdateRequest(
     [property: CacheKey]
     [property: McpParameterDescription("Bitrix24 CRM deal id to update.")]
@@ -251,6 +262,7 @@ public sealed record BitrixCrmDealTrainingDirectionUpdateResponse(bool Success, 
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Add an outgoing email CRM activity on a Bitrix24 deal for the student, student curator, or manager.")]
+[McpToolDescription("ru", "Добавить в сделку Bitrix24 исходящее письмо студенту, куратору студента или менеджеру.")]
 public sealed record BitrixCrmDealPartyEmailAddRequest(
     [property: McpParameterDescription("Bitrix24 CRM deal id.")]
     long DealId,
@@ -279,6 +291,7 @@ public sealed record BitrixCrmDealPartyEmailAddResponse(bool Success, long Activ
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Add a Bitrix24 CRM timeline comment.")]
+[McpToolDescription("ru", "Добавить комментарий в таймлайн сущности Bitrix24, например сделки или контакта.")]
 public sealed record BitrixCrmTimelineCommentAddRequest(
     [property: McpParameterDescription("Bitrix24 CRM timeline entity type, for example deal or contact.")]
     string EntityType,

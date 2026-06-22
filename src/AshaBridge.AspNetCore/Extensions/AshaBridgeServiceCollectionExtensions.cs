@@ -6,8 +6,7 @@ using AshaBridge.Core.Extensions;
 using AshaBridge.Core.Options;
 using AshaBridge.Core.Registry;
 using AshaBridge.Core.Runtime;
-using AshaBridge.Extensions.Bitrix24;
-using AshaBridge.Extensions.Moodle;
+using AshaBridge.Sdk.Contracts;
 using AshaBridge.Persistence.Audit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authentication;
@@ -23,23 +22,12 @@ public static class AshaBridgeServiceCollectionExtensions
 {
     public static IServiceCollection AddAshaBridge(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IEnumerable<IAshaBridgeExtension> loadedExtensions)
     {
         services
             .AddOptions<AshaBridgeOptions>()
             .Bind(configuration.GetSection("ashabridge"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        services
-            .AddOptions<BitrixExtensionOptions>()
-            .Bind(configuration.GetSection("bitrix"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        services
-            .AddOptions<MoodleExtensionOptions>()
-            .Bind(configuration.GetSection("moodle"))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
@@ -50,6 +38,7 @@ public static class AshaBridgeServiceCollectionExtensions
         services.AddSingleton(contracts);
         services.AddSingleton(extensions);
         services.AddSingleton<StreamingInvocationRuntime>();
+        services.AddSingleton<AshaBridgeMcpDispatcher>();
         services.AddSingleton<CacheKeyBuilder>();
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -67,6 +56,8 @@ public static class AshaBridgeServiceCollectionExtensions
         services.AddHealthChecks()
             .AddCheck<AshaBridgeRegistryHealthCheck>("ashabridge_registries")
             .AddCheck<AshaBridgeExtensionsHealthCheck>("ashabridge_extensions");
+
+        RegisterExtensions(services, configuration, methods, contracts, extensions, loadedExtensions);
 
         services.AddMcpServer()
             .WithHttpTransport()
@@ -91,9 +82,16 @@ public static class AshaBridgeServiceCollectionExtensions
                     return result;
                 });
             })
-            .WithTools<AshaBridgeMcpToolSurface>();
+            .WithListToolsHandler((request, ct) =>
+                request.Services!.GetRequiredService<AshaBridgeMcpDispatcher>().ListToolsAsync(ct))
+            .WithCallToolHandler((request, ct) =>
+            {
+                var requestServices = request.Services
+                    ?? throw new InvalidOperationException("MCP request services are unavailable.");
+                return requestServices.GetRequiredService<AshaBridgeMcpDispatcher>()
+                    .CallToolAsync(request.Params, requestServices, ct);
+            });
 
-        RegisterBuiltInExtensions(services, configuration, methods, contracts, extensions);
         services.AddSingleton<IAshaBridgeStartupMarker, AshaBridgeStartupMarker>();
 
         return services;
@@ -162,41 +160,25 @@ public static class AshaBridgeServiceCollectionExtensions
             .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.Ordinal);
     }
 
-    private static void RegisterBuiltInExtensions(
+    private static void RegisterExtensions(
         IServiceCollection services,
         IConfiguration configuration,
         MethodRegistry methods,
         ContractRegistry contracts,
-        ExtensionRegistry extensions)
+        ExtensionRegistry extensions,
+        IEnumerable<IAshaBridgeExtension> loadedExtensions)
     {
-        var enabled = configuration.GetSection("ashabridge:extensions:enabled").Get<string[]>()
-            ?? ["ashabridge.extensions.bitrix24", "ashabridge.extensions.moodle"];
-
-        RegisterIfEnabled(services, enabled, methods, contracts, extensions, new Bitrix24Extension());
-        RegisterIfEnabled(services, enabled, methods, contracts, extensions, new MoodleExtension());
+        foreach (var extension in loadedExtensions)
+        {
+            extensions.Add(new ExtensionDescriptor(extension.Id, extension.Version, Enabled: true, LoadMode: "plugin"));
+            extension.Configure(new AshaBridgeExtensionBuilder(services, configuration, methods, contracts, extension.Id));
+        }
 
         methods.Freeze();
         contracts.Freeze();
         extensions.Freeze();
     }
 
-    private static void RegisterIfEnabled(
-        IServiceCollection services,
-        IReadOnlyCollection<string> enabled,
-        MethodRegistry methods,
-        ContractRegistry contracts,
-        ExtensionRegistry extensions,
-        Sdk.Contracts.IAshaBridgeExtension extension)
-    {
-        var isEnabled = enabled.Contains(extension.Id, StringComparer.Ordinal);
-        extensions.Add(new ExtensionDescriptor(extension.Id, extension.Version, isEnabled, "built-in"));
-        if (!isEnabled)
-        {
-            return;
-        }
-
-        extension.Configure(new AshaBridgeExtensionBuilder(services, methods, contracts, extension.Id));
-    }
 }
 
 public interface IAshaBridgeStartupMarker;

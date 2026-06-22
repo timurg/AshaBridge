@@ -15,6 +15,7 @@ public sealed record McpMethodDescriptor(
     CachePolicy? CachePolicy,
     bool RequiresIdempotency,
     string? Description,
+    bool ExposeAsTool,
     bool Enabled);
 
 public sealed record CachePolicy(int TtlSeconds, CacheScope Scope);

@@ -1,5 +1,6 @@
 using AshaBridge.AspNetCore.Extensions;
 using AshaBridge.Core.Registry;
+using AshaBridge.Extensions.Bitrix24;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,7 +18,7 @@ public sealed class Bitrix24ContractRegistrationTests
 
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
-        services.AddAshaBridge(configuration);
+        services.AddAshaBridge(configuration, [new Bitrix24Extension()]);
 
         using var provider = services.BuildServiceProvider(validateScopes: true);
         var methods = provider.GetRequiredService<MethodRegistry>()

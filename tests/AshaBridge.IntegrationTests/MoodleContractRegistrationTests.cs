@@ -1,5 +1,6 @@
 using AshaBridge.AspNetCore.Extensions;
 using AshaBridge.Core.Registry;
+using AshaBridge.Extensions.Moodle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,7 +18,7 @@ public sealed class MoodleContractRegistrationTests
 
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
-        services.AddAshaBridge(configuration);
+        services.AddAshaBridge(configuration, [new MoodleExtension()]);
 
         using var provider = services.BuildServiceProvider(validateScopes: true);
         var methods = provider.GetRequiredService<MethodRegistry>()
@@ -34,6 +35,7 @@ public sealed class MoodleContractRegistrationTests
             "moodle_course_get_by_id",
             "moodle_course_get_contents",
             "moodle_courses_find_by_category",
+            "moodle_user_create",
             "moodle_user_enrol",
             "moodle_user_enrol_as_student",
             "moodle_user_find_by_email",

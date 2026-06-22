@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using AshaBridge.Extensions.Moodle.Contracts;
 using AshaBridge.Extensions.Moodle.Handlers;
 using AshaBridge.Sdk.Contracts;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,11 @@ public sealed class MoodleExtension : IAshaBridgeExtension
 
     public void Configure(IAshaBridgeExtensionBuilder builder)
     {
+        builder.Services
+            .AddOptions<MoodleExtensionOptions>()
+            .Bind(builder.Configuration.GetSection("moodle"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         builder.Services.AddHttpClient<MoodleWebServiceClient>((services, http) =>
         {
             var options = services.GetRequiredService<IOptions<MoodleExtensionOptions>>().Value;
@@ -30,24 +36,25 @@ public sealed class MoodleExtension : IAshaBridgeExtension
             http.Timeout = TimeSpan.FromSeconds(instance.TimeoutSeconds);
             http.BaseAddress = new Uri(EnsureTrailingSlash(instance.BaseUrl));
         });
-        builder.AddMethod<MoodleFindUserByEmailRequest, MoodleFindUserResponse, MoodleFindUserByEmailHandler>();
-        builder.AddMethod<MoodleFindUserByIdRequest, MoodleFindUserResponse, MoodleFindUserByIdHandler>();
-        builder.AddMethod<MoodleFindUserByUsernameRequest, MoodleFindUserResponse, MoodleFindUserByUsernameHandler>();
-        builder.AddMethod<MoodleUserUpdateNameRequest, MoodleUpdateUserResponse, MoodleUserUpdateNameHandler>();
-        builder.AddMethod<MoodleUserUpdateEmailRequest, MoodleUpdateUserResponse, MoodleUserUpdateEmailHandler>();
-        builder.AddMethod<MoodleUserUpdateUsernameRequest, MoodleUpdateUserResponse, MoodleUserUpdateUsernameHandler>();
-        builder.AddMethod<MoodleUserUpdatePasswordRequest, MoodleUpdateUserResponse, MoodleUserUpdatePasswordHandler>();
-        builder.AddMethod<MoodleUserSuspendRequest, MoodleUpdateUserResponse, MoodleUserSuspendHandler>();
-        builder.AddMethod<MoodleUserUnsuspendRequest, MoodleUpdateUserResponse, MoodleUserUnsuspendHandler>();
-        builder.AddMethod<MoodleRequestPasswordResetByEmailRequest, MoodleRawResponse, MoodleRequestPasswordResetByEmailHandler>();
-        builder.AddMethod<MoodleRequestPasswordResetByUsernameRequest, MoodleRawResponse, MoodleRequestPasswordResetByUsernameHandler>();
-        builder.AddMethod<MoodleUserEnrolRequest, MoodleRawResponse, MoodleUserEnrolHandler>();
-        builder.AddMethod<MoodleUserEnrolAsStudentRequest, MoodleRawResponse, MoodleUserEnrolAsStudentHandler>();
-        builder.AddMethod<MoodleCourseGetByIdRequest, MoodleRawResponse, MoodleCourseGetByIdHandler>();
-        builder.AddMethod<MoodleCourseFindByShortNameRequest, MoodleRawResponse, MoodleCourseFindByShortNameHandler>();
-        builder.AddMethod<MoodleCourseFindByIdNumberRequest, MoodleRawResponse, MoodleCourseFindByIdNumberHandler>();
-        builder.AddMethod<MoodleCoursesFindByCategoryRequest, MoodleRawResponse, MoodleCoursesFindByCategoryHandler>();
-        builder.AddMethod<MoodleCourseGetContentsRequest, MoodleRawResponse, MoodleCourseGetContentsHandler>();
+        builder.AddToolMethod<MoodleCreateUserRequest, MoodleCreateUserResponse, MoodleCreateUserHandler>();
+        builder.AddToolMethod<MoodleFindUserByEmailRequest, MoodleFindUserResponse, MoodleFindUserByEmailHandler>();
+        builder.AddToolMethod<MoodleFindUserByIdRequest, MoodleFindUserResponse, MoodleFindUserByIdHandler>();
+        builder.AddToolMethod<MoodleFindUserByUsernameRequest, MoodleFindUserResponse, MoodleFindUserByUsernameHandler>();
+        builder.AddToolMethod<MoodleUserUpdateNameRequest, MoodleUpdateUserResponse, MoodleUserUpdateNameHandler>();
+        builder.AddToolMethod<MoodleUserUpdateEmailRequest, MoodleUpdateUserResponse, MoodleUserUpdateEmailHandler>();
+        builder.AddToolMethod<MoodleUserUpdateUsernameRequest, MoodleUpdateUserResponse, MoodleUserUpdateUsernameHandler>();
+        builder.AddToolMethod<MoodleUserUpdatePasswordRequest, MoodleUpdateUserResponse, MoodleUserUpdatePasswordHandler>();
+        builder.AddToolMethod<MoodleUserSuspendRequest, MoodleUpdateUserResponse, MoodleUserSuspendHandler>();
+        builder.AddToolMethod<MoodleUserUnsuspendRequest, MoodleUpdateUserResponse, MoodleUserUnsuspendHandler>();
+        builder.AddToolMethod<MoodleRequestPasswordResetByEmailRequest, MoodleRawResponse, MoodleRequestPasswordResetByEmailHandler>();
+        builder.AddToolMethod<MoodleRequestPasswordResetByUsernameRequest, MoodleRawResponse, MoodleRequestPasswordResetByUsernameHandler>();
+        builder.AddToolMethod<MoodleUserEnrolRequest, MoodleRawResponse, MoodleUserEnrolHandler>();
+        builder.AddToolMethod<MoodleUserEnrolAsStudentRequest, MoodleRawResponse, MoodleUserEnrolAsStudentHandler>();
+        builder.AddToolMethod<MoodleCourseGetByIdRequest, MoodleRawResponse, MoodleCourseGetByIdHandler>();
+        builder.AddToolMethod<MoodleCourseFindByShortNameRequest, MoodleRawResponse, MoodleCourseFindByShortNameHandler>();
+        builder.AddToolMethod<MoodleCourseFindByIdNumberRequest, MoodleRawResponse, MoodleCourseFindByIdNumberHandler>();
+        builder.AddToolMethod<MoodleCoursesFindByCategoryRequest, MoodleRawResponse, MoodleCoursesFindByCategoryHandler>();
+        builder.AddToolMethod<MoodleCourseGetContentsRequest, MoodleRawResponse, MoodleCourseGetContentsHandler>();
     }
 
     private static string EnsureTrailingSlash(string value) =>

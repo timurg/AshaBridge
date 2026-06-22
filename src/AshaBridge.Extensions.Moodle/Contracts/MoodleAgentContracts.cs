@@ -11,7 +11,10 @@ public sealed record MoodleFindUserResponse(bool Found, string Field, string Val
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Find one Moodle user by email.")]
-public sealed record MoodleFindUserByEmailRequest(string Email) : IMcpRequest<MoodleFindUserResponse>;
+[McpToolDescription("ru", "Найти пользователя Moodle по адресу электронной почты.")]
+public sealed record MoodleFindUserByEmailRequest(
+    [property: McpParameterDescription("Moodle user email address.")]
+    string Email) : IMcpRequest<MoodleFindUserResponse>;
 
 [McpMethod("moodle_user_find_by_id")]
 [ContractVersion("1.0.0")]
@@ -19,7 +22,10 @@ public sealed record MoodleFindUserByEmailRequest(string Email) : IMcpRequest<Mo
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Find one Moodle user by id.")]
-public sealed record MoodleFindUserByIdRequest(long Id) : IMcpRequest<MoodleFindUserResponse>;
+[McpToolDescription("ru", "Найти пользователя Moodle по внутреннему числовому идентификатору.")]
+public sealed record MoodleFindUserByIdRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long Id) : IMcpRequest<MoodleFindUserResponse>;
 
 [McpMethod("moodle_user_find_by_username")]
 [ContractVersion("1.0.0")]
@@ -27,7 +33,10 @@ public sealed record MoodleFindUserByIdRequest(long Id) : IMcpRequest<MoodleFind
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Find one Moodle user by username.")]
-public sealed record MoodleFindUserByUsernameRequest(string Username) : IMcpRequest<MoodleFindUserResponse>;
+[McpToolDescription("ru", "Найти пользователя Moodle по имени пользователя (логину).")]
+public sealed record MoodleFindUserByUsernameRequest(
+    [property: McpParameterDescription("Moodle username (login).")]
+    string Username) : IMcpRequest<MoodleFindUserResponse>;
 
 [McpMethod("moodle_user_update_name")]
 [ContractVersion("1.0.0")]
@@ -36,7 +45,14 @@ public sealed record MoodleFindUserByUsernameRequest(string Username) : IMcpRequ
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Update a Moodle user's first and last name.")]
-public sealed record MoodleUserUpdateNameRequest(long Id, string FirstName, string LastName) : IMcpRequest<MoodleUpdateUserResponse>;
+[McpToolDescription("ru", "Изменить имя и фамилию пользователя Moodle.")]
+public sealed record MoodleUserUpdateNameRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long Id,
+    [property: McpParameterDescription("New first name.")]
+    string FirstName,
+    [property: McpParameterDescription("New last name.")]
+    string LastName) : IMcpRequest<MoodleUpdateUserResponse>;
 
 [McpMethod("moodle_user_update_email")]
 [ContractVersion("1.0.0")]
@@ -45,7 +61,12 @@ public sealed record MoodleUserUpdateNameRequest(long Id, string FirstName, stri
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Update a Moodle user's email.")]
-public sealed record MoodleUserUpdateEmailRequest(long Id, string Email) : IMcpRequest<MoodleUpdateUserResponse>;
+[McpToolDescription("ru", "Изменить адрес электронной почты пользователя Moodle.")]
+public sealed record MoodleUserUpdateEmailRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long Id,
+    [property: McpParameterDescription("New email address.")]
+    string Email) : IMcpRequest<MoodleUpdateUserResponse>;
 
 [McpMethod("moodle_user_update_username")]
 [ContractVersion("1.0.0")]
@@ -54,7 +75,12 @@ public sealed record MoodleUserUpdateEmailRequest(long Id, string Email) : IMcpR
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Update a Moodle user's username.")]
-public sealed record MoodleUserUpdateUsernameRequest(long Id, string Username) : IMcpRequest<MoodleUpdateUserResponse>;
+[McpToolDescription("ru", "Изменить имя пользователя (логин) в Moodle.")]
+public sealed record MoodleUserUpdateUsernameRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long Id,
+    [property: McpParameterDescription("New Moodle username (login).")]
+    string Username) : IMcpRequest<MoodleUpdateUserResponse>;
 
 [McpMethod("moodle_user_update_password")]
 [ContractVersion("1.0.0")]
@@ -63,7 +89,12 @@ public sealed record MoodleUserUpdateUsernameRequest(long Id, string Username) :
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Update a Moodle user's password.")]
-public sealed record MoodleUserUpdatePasswordRequest(long Id, string Password) : IMcpRequest<MoodleUpdateUserResponse>;
+[McpToolDescription("ru", "Установить новый пароль пользователя Moodle.")]
+public sealed record MoodleUserUpdatePasswordRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long Id,
+    [property: McpParameterDescription("New Moodle password.")]
+    string Password) : IMcpRequest<MoodleUpdateUserResponse>;
 
 [McpMethod("moodle_user_suspend")]
 [ContractVersion("1.0.0")]
@@ -72,7 +103,10 @@ public sealed record MoodleUserUpdatePasswordRequest(long Id, string Password) :
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Suspend a Moodle user.")]
-public sealed record MoodleUserSuspendRequest(long Id) : IMcpRequest<MoodleUpdateUserResponse>;
+[McpToolDescription("ru", "Заблокировать учетную запись пользователя Moodle.")]
+public sealed record MoodleUserSuspendRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long Id) : IMcpRequest<MoodleUpdateUserResponse>;
 
 [McpMethod("moodle_user_unsuspend")]
 [ContractVersion("1.0.0")]
@@ -81,7 +115,10 @@ public sealed record MoodleUserSuspendRequest(long Id) : IMcpRequest<MoodleUpdat
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Unsuspend a Moodle user.")]
-public sealed record MoodleUserUnsuspendRequest(long Id) : IMcpRequest<MoodleUpdateUserResponse>;
+[McpToolDescription("ru", "Разблокировать учетную запись пользователя Moodle.")]
+public sealed record MoodleUserUnsuspendRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long Id) : IMcpRequest<MoodleUpdateUserResponse>;
 
 [McpMethod("moodle_user_request_password_reset_by_email")]
 [ContractVersion("1.0.0")]
@@ -89,7 +126,10 @@ public sealed record MoodleUserUnsuspendRequest(long Id) : IMcpRequest<MoodleUpd
 [OperationRisk(OperationRisk.WriteLow)]
 [DoNotCache]
 [McpDescription("Request a Moodle password reset by email.")]
-public sealed record MoodleRequestPasswordResetByEmailRequest(string Email) : IMcpRequest<MoodleRawResponse>;
+[McpToolDescription("ru", "Запросить сброс пароля Moodle по адресу электронной почты пользователя.")]
+public sealed record MoodleRequestPasswordResetByEmailRequest(
+    [property: McpParameterDescription("Moodle user email address.")]
+    string Email) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_user_request_password_reset_by_username")]
 [ContractVersion("1.0.0")]
@@ -97,7 +137,10 @@ public sealed record MoodleRequestPasswordResetByEmailRequest(string Email) : IM
 [OperationRisk(OperationRisk.WriteLow)]
 [DoNotCache]
 [McpDescription("Request a Moodle password reset by username.")]
-public sealed record MoodleRequestPasswordResetByUsernameRequest(string Username) : IMcpRequest<MoodleRawResponse>;
+[McpToolDescription("ru", "Запросить сброс пароля Moodle по имени пользователя (логину).")]
+public sealed record MoodleRequestPasswordResetByUsernameRequest(
+    [property: McpParameterDescription("Moodle username (login).")]
+    string Username) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_user_enrol")]
 [ContractVersion("1.0.0")]
@@ -106,7 +149,14 @@ public sealed record MoodleRequestPasswordResetByUsernameRequest(string Username
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Enrol one Moodle user into one course with an explicit role id.")]
-public sealed record MoodleUserEnrolRequest(long RoleId, long UserId, long CourseId) : IMcpRequest<MoodleRawResponse>;
+[McpToolDescription("ru", "Зачислить пользователя Moodle на курс с явно указанной ролью.")]
+public sealed record MoodleUserEnrolRequest(
+    [property: McpParameterDescription("Moodle role id for the enrolment.")]
+    long RoleId,
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long UserId,
+    [property: McpParameterDescription("Internal numeric Moodle course id.")]
+    long CourseId) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_user_enrol_as_student")]
 [ContractVersion("1.0.0")]
@@ -115,7 +165,12 @@ public sealed record MoodleUserEnrolRequest(long RoleId, long UserId, long Cours
 [RequiresIdempotency]
 [DoNotCache]
 [McpDescription("Enrol one Moodle user into one course as a student.")]
-public sealed record MoodleUserEnrolAsStudentRequest(long UserId, long CourseId) : IMcpRequest<MoodleRawResponse>;
+[McpToolDescription("ru", "Зачислить пользователя Moodle на курс в роли студента.")]
+public sealed record MoodleUserEnrolAsStudentRequest(
+    [property: McpParameterDescription("Internal numeric Moodle user id.")]
+    long UserId,
+    [property: McpParameterDescription("Internal numeric Moodle course id.")]
+    long CourseId) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_course_get_by_id")]
 [ContractVersion("1.0.0")]
@@ -123,6 +178,7 @@ public sealed record MoodleUserEnrolAsStudentRequest(long UserId, long CourseId)
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Get one Moodle course by its internal numeric course id.")]
+[McpToolDescription("ru", "Получить курс Moodle по внутреннему числовому идентификатору курса.")]
 public sealed record MoodleCourseGetByIdRequest(
     [property: McpParameterDescription("Internal numeric Moodle course id, not the course idnumber field.")]
     long Id) : IMcpRequest<MoodleRawResponse>;
@@ -133,7 +189,10 @@ public sealed record MoodleCourseGetByIdRequest(
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Find Moodle courses by shortname.")]
-public sealed record MoodleCourseFindByShortNameRequest(string ShortName) : IMcpRequest<MoodleRawResponse>;
+[McpToolDescription("ru", "Найти курсы Moodle по краткому названию.")]
+public sealed record MoodleCourseFindByShortNameRequest(
+    [property: McpParameterDescription("Moodle course short name.")]
+    string ShortName) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_course_find_by_idnumber")]
 [ContractVersion("1.0.0")]
@@ -141,6 +200,7 @@ public sealed record MoodleCourseFindByShortNameRequest(string ShortName) : IMcp
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Find Moodle courses by the optional course idnumber field, not by internal course id.")]
+[McpToolDescription("ru", "Найти курсы Moodle по значению поля idnumber, а не по внутреннему идентификатору.")]
 public sealed record MoodleCourseFindByIdNumberRequest(
     [property: McpParameterDescription("Value stored in the Moodle course idnumber field.")]
     string IdNumber) : IMcpRequest<MoodleRawResponse>;
@@ -151,7 +211,10 @@ public sealed record MoodleCourseFindByIdNumberRequest(
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Find Moodle courses by category id.")]
-public sealed record MoodleCoursesFindByCategoryRequest(string Category) : IMcpRequest<MoodleRawResponse>;
+[McpToolDescription("ru", "Найти курсы Moodle в указанной категории.")]
+public sealed record MoodleCoursesFindByCategoryRequest(
+    [property: McpParameterDescription("Moodle course category id.")]
+    string Category) : IMcpRequest<MoodleRawResponse>;
 
 [McpMethod("moodle_course_get_contents")]
 [ContractVersion("1.0.0")]
@@ -159,4 +222,7 @@ public sealed record MoodleCoursesFindByCategoryRequest(string Category) : IMcpR
 [OperationRisk(OperationRisk.Read)]
 [Cacheable(TtlSeconds = 300, Scope = CacheScope.Organization)]
 [McpDescription("Get Moodle course contents without extra options.")]
-public sealed record MoodleCourseGetContentsRequest(long CourseId) : IMcpRequest<MoodleRawResponse>;
+[McpToolDescription("ru", "Получить содержимое курса Moodle: разделы, модули и учебные материалы.")]
+public sealed record MoodleCourseGetContentsRequest(
+    [property: McpParameterDescription("Internal numeric Moodle course id.")]
+    long CourseId) : IMcpRequest<MoodleRawResponse>;

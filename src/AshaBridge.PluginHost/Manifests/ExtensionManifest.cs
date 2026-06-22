@@ -10,6 +10,7 @@ public sealed record ExtensionManifest(
     string Name,
     string Version,
     string SdkVersion,
+    string Assembly,
     IReadOnlyList<string> ProvidesMethods,
     IReadOnlyList<string> RequiresConfiguration);
 
@@ -52,14 +53,14 @@ public sealed class PluginFolderLoader(ExtensionManifestReader manifestReader)
             }
 
             var directory = Path.GetDirectoryName(manifestPath)!;
-            var assemblyPath = Directory.EnumerateFiles(directory, "*.dll").FirstOrDefault();
+            var assemblyPath = ResolveAssemblyPath(directory, manifest.Assembly);
             if (assemblyPath is null)
             {
                 continue;
             }
 
-            var context = new AssemblyLoadContext($"AshaBridge:{manifest.Id}", isCollectible: false);
-            var assembly = context.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath));
+            var context = new PluginLoadContext(manifest.Id, assemblyPath);
+            var assembly = context.LoadFromAssemblyPath(assemblyPath);
             var extension = assembly.GetTypes()
                 .Where(t => !t.IsAbstract && typeof(IAshaBridgeExtension).IsAssignableFrom(t))
                 .Select(t => (IAshaBridgeExtension?)Activator.CreateInstance(t))
@@ -77,9 +78,46 @@ public sealed class PluginFolderLoader(ExtensionManifestReader manifestReader)
     private static bool IsSdkCompatible(string sdkVersion) =>
         sdkVersion.Contains("1.0.0", StringComparison.Ordinal) ||
         sdkVersion.StartsWith(">=", StringComparison.Ordinal);
+
+    private static string? ResolveAssemblyPath(string pluginDirectory, string assemblyName)
+    {
+        var pluginPath = Path.GetFullPath(Path.Combine(pluginDirectory, assemblyName));
+        if (File.Exists(pluginPath))
+        {
+            return pluginPath;
+        }
+
+        var applicationPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyName));
+        return File.Exists(applicationPath) ? applicationPath : null;
+    }
 }
 
 public sealed record LoadedPluginExtension(
     ExtensionManifest Manifest,
     IAshaBridgeExtension Extension,
     Assembly Assembly);
+
+internal sealed class PluginLoadContext(string pluginId, string mainAssemblyPath)
+    : AssemblyLoadContext($"AshaBridge:{pluginId}", isCollectible: false)
+{
+    private readonly AssemblyDependencyResolver resolver = new(mainAssemblyPath);
+
+    protected override Assembly? Load(AssemblyName assemblyName)
+    {
+        var shared = Default.Assemblies.FirstOrDefault(
+            assembly => AssemblyName.ReferenceMatchesDefinition(assembly.GetName(), assemblyName));
+        if (shared is not null)
+        {
+            return shared;
+        }
+
+        var path = resolver.ResolveAssemblyToPath(assemblyName);
+        return path is null ? null : LoadFromAssemblyPath(path);
+    }
+
+    protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
+    {
+        var path = resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+        return path is null ? IntPtr.Zero : LoadUnmanagedDllFromPath(path);
+    }
+}

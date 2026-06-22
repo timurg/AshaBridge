@@ -4,10 +4,7 @@
     <ProjectReference Include="..\AshaBridge.Sdk\AshaBridge.Sdk.csproj" />
     <ProjectReference Include="..\AshaBridge.Core\AshaBridge.Core.csproj" />
     <ProjectReference Include="..\AshaBridge.Caching\AshaBridge.Caching.csproj" />
-    <ProjectReference Include="..\AshaBridge.PluginHost\AshaBridge.PluginHost.csproj" />
     <ProjectReference Include="..\AshaBridge.Persistence\AshaBridge.Persistence.csproj" />
-    <ProjectReference Include="..\AshaBridge.Extensions.Bitrix24\AshaBridge.Extensions.Bitrix24.csproj" />
-    <ProjectReference Include="..\AshaBridge.Extensions.Moodle\AshaBridge.Extensions.Moodle.csproj" />
   </ItemGroup>
 
   <ItemGroup>

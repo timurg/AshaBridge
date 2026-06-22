@@ -16,6 +16,12 @@ Core executes contracts. Extensions provide methods. MCP exposes tools. ASP.NET 
 - `AshaBridge.Extensions.Bitrix24` - official Bitrix24 extension.
 - `AshaBridge.Extensions.Moodle` - official Moodle extension.
 
+## Extensions
+
+`AshaBridge.Api` loads enabled extensions dynamically from `ashabridge:extensions:path` during startup. Each plugin directory contains an `extension.manifest.json`; its `assembly` field names the DLL that implements `IAshaBridgeExtension`.
+
+An extension registers internal methods with `AddMethod` and AI-visible MCP tools with `AddToolMethod`. The MCP tool list and schemas are generated from the loaded extension contracts, so adding a plugin does not require changes in `AshaBridge.AspNetCore`.
+
 ## Single-User Configuration
 
 AshaBridge is configured as a single-user server. All important settings live in:
@@ -205,6 +211,14 @@ MCP tool responses can be compacted through endpoint query parameters:
 ```text
 /mcp?compact=true&dropZero=true&maxResponseChars=6000
 ```
+
+Tool descriptions can be localized for the MCP client through `locale`. For GigaChat, use Russian descriptions:
+
+```text
+/mcp?locale=ru
+```
+
+The `ru` and `ru-RU` forms are supported. Without `locale`, the primary English descriptions from the tool attributes are used.
 
 - `compact=true` removes nulls, blank strings, and empty arrays/objects.
 - `dropZero=true` additionally removes numeric zeros; false values are preserved.
